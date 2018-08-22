@@ -1,0 +1,6 @@
+if BOARD_WUNDERBOARD
+
+config BOARD
+	default "hifive1"
+
+endif

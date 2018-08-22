@@ -1,0 +1,11 @@
+identifier: wunderboard
+name: SiFive Wunderboard
+type: mcu
+arch: riscv32
+toolchain:
+  - zephyr
+ram: 16
+testing:
+  ignore_tags:
+    - net
+    - bluetooth
