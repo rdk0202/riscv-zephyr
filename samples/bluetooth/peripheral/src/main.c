@@ -230,7 +230,7 @@ static void bt_ready(int err)
 	hrs_init(0x01);
 	bas_init();
 	cts_init();
-	dis_init(CONFIG_SOC, "Manufacturer");
+	dis_init(CONFIG_SOC_FAMILY, "Manufacturer");
 	bt_gatt_service_register(&vnd_svc);
 
 	if (IS_ENABLED(CONFIG_SETTINGS)) {

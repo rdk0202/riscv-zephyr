@@ -55,6 +55,8 @@
 
 #ifndef _ASMLANGUAGE
 
+#include <zephyr/types.h>
+
 #if defined(CONFIG_RISCV_SOC_INTERRUPT_INIT)
 void soc_interrupt_init(void);
 #endif
