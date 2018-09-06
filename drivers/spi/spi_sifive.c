@@ -81,12 +81,6 @@ int spi_config(struct device * dev, u32_t frequency, u16_t operation) {
 	else
 		CLR_BIT(SPI_REG(dev, REG_FMT), SF_FMT_ENDIAN);	
 
-	/* Set CS hold */
-	if(operation & SPI_HOLD_ON_CS)
-		SPI_REG(dev, REG_CSMODE) = SF_CSMODE_HOLD;
-	else
-		SPI_REG(dev, REG_CSMODE) = SF_CSMODE_AUTO;
-
 	return 0;
 }
 
