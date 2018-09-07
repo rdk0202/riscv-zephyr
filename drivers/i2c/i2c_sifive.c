@@ -104,9 +104,8 @@ int i2c_sifive_configure(struct device *dev, u32_t dev_config) {
 		case I2C_SPEED_FAST_PLUS:
 		case I2C_SPEED_HIGH:
 		case I2C_SPEED_ULTRA:
-			return -ENOTSUP;
 		default:
-			return -EINVAL;
+			return -EIO;
 	}
 
 	const u16_t prescale = (config->f_sys / (5 * i2c_speed));
@@ -115,11 +114,11 @@ int i2c_sifive_configure(struct device *dev, u32_t dev_config) {
 
 	/* We support I2C Master mode only */
 	if(!I2C_GET_MASTER(dev_config))
-		return -ENOTSUP;
+		return -EIO;
 
 	/* We don't support 10-bit addressing */
 	if(dev_config & I2C_ADDR_10_BITS)
-		return -ENOTSUP;
+		return -EIO;
 
 	return 0;
 }
