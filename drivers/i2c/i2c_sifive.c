@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2018 SiFive Inc.
+ *
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #include <device.h>
@@ -56,6 +58,19 @@ struct i2c_sifive_cfg {
 };
 
 /* Helper functions */
+
+int i2c_sifive_transfer_one(struct device *dev,
+		struct i2c_msg *msg,
+		u16_t addr)
+{
+	struct i2c_sifive_data *data = dev->driver_data;
+	struct i2c_sifive_cfg *config = dev->config->config_info;
+
+
+
+	return 0;
+}
+
 
 /* API Functions */
 
@@ -114,8 +129,14 @@ int i2c_sifive_transfer(struct device *dev,
 		u8_t num_msgs,
 		u16_t addr)
 {
-	struct i2c_sifive_data *data = dev->driver_data;
-	struct i2c_sifive_cfg *config = dev->config->config_info;
+	int rc = 0;
+
+	for(int i = 0; i < num_msgs; i++) {
+		rc = i2c_sifive_transfer_one(dev, &(msgs[i]), addr);
+		if(rc != 0)
+			return rc;
+	}
+
 	return 0;
 };
 
@@ -138,6 +159,6 @@ DEVICE_AND_API_INIT(i2c_0,
 		&i2c_sifive_data_0,
 		&i2c_sifive_cfg_0,
 		POST_KERNEL,
-		CONFIG_KERNEL_INIT_PRIORITY_DEVICE,
+		CONFIG_I2C_INIT_PRIORITY,
 		&i2c_sifive_api);
 
