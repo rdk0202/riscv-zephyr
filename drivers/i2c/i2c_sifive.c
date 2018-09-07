@@ -6,6 +6,7 @@
 
 #include <device.h>
 #include <i2c.h>
+#include <board.h>
 
 /* Macros */
 
@@ -47,6 +48,10 @@
 #define SF_STATUS_TIP	1
 #define SF_STATUS_IP	0
 
+/* Values */
+#define SF_WRITE_BIT	(0 << SF_TX_RW)
+#define SF_READ_BIT		(1 << SF_TX_RW)
+
 /* Structure declarations */
 struct i2c_sifive_data {
 
@@ -66,7 +71,44 @@ int i2c_sifive_transfer_one(struct device *dev,
 	struct i2c_sifive_data *data = dev->driver_data;
 	struct i2c_sifive_cfg *config = dev->config->config_info;
 
+	/* Transmit address */
+	if(msg->flags & I2C_MSG_WRITE) {
+		I2C_REG(config, REG_TRANSMIT) = (addr | SF_WRITE_BIT);
+	} else {
+		I2C_REG(config, REG_TRANSMIT) = (addr | SF_READ_BIT);
+	}
+	SET_BIT(config, REG_COMMAND, SF_CMD_START);
+	SET_BIT(config, REG_COMMAND, SF_CMD_WRITE);
 
+	/* Wait for transfer */
+	while(IS_BIT_SET(config, REG_STATUS, SF_STATUS_TIP)) ;
+
+	/* Check acknowledge */
+	if(IS_BIT_SET(config, REG_STATUS, SF_STATUS_RXACK))
+		return -EIO;
+
+	if(msg->flags & I2C_MSG_WRITE) {
+		for(int i = 0; i < msg->len; i++) {
+			/* Write the data to the transmit register */
+			I2C_REG(config, REG_TRANSMIT) = msg->buf[i];
+
+			/* On the last byte, set the stop bit if requested */
+			if((i == (msg->len - 1)) && (msg->flags & I2C_MSG_STOP))
+				SET_BIT(config, REG_COMMAND, SF_CMD_STOP);
+
+			/* Write the byte */
+			SET_BIT(config, REG_COMMAND, SF_CMD_WRITE);
+
+			/* Wait for transfer */
+			while(IS_BIT_SET(config, REG_STATUS, SF_STATUS_TIP)) ;
+
+			/* Check acknowledge */
+			if(IS_BIT_SET(config, REG_STATUS, SF_STATUS_RXACK))
+				return -EIO;
+		}
+	} else {
+
+	}
 
 	return 0;
 }
@@ -113,7 +155,7 @@ int i2c_sifive_configure(struct device *dev, u32_t dev_config) {
 	I2C_REG(config, REG_PRESCALE_HIGH) = (u8_t) (0xFF & (prescale >> 8));
 
 	/* We support I2C Master mode only */
-	if(!I2C_GET_MASTER(dev_config))
+	if(!(dev_config & I2C_MODE_MASTER))
 		return -EIO;
 
 	/* We don't support 10-bit addressing */
@@ -129,6 +171,9 @@ int i2c_sifive_transfer(struct device *dev,
 		u16_t addr)
 {
 	int rc = 0;
+
+	if(msgs == NULL)
+		return -EIO;
 
 	for(int i = 0; i < num_msgs; i++) {
 		rc = i2c_sifive_transfer_one(dev, &(msgs[i]), addr);
