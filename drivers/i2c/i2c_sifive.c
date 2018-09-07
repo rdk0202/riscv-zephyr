@@ -13,9 +13,7 @@
 #define _REG8(base, offset)	(*(volatile u8_t *) ((base) + (offset)))
 #define I2C_REG(config, reg) _REG8(config->base, reg)
 
-#define SET_BIT(config, reg, offset)	I2C_REG(config, reg) |= (1 << offset)
-#define CLR_BIT(config, reg, offset)	I2C_REG(config, reg) &= ~(1 << offset)
-#define IS_BIT_SET(config, reg, offset)	(I2C_REG(config, reg) & (1 << offset))
+#define IS_SET(config, reg, value)	(I2C_REG(config, reg) & (value))
 
 /* Registers */
 #define REG_PRESCALE_LOW	0x00
@@ -29,28 +27,27 @@
 #define REG_COMMAND			0x04
 #define REG_STATUS			0x04
 
-/* Offsets */
-#define SF_CONTROL_EN	7
-#define SF_CONTROL_IE	6
+/* Values */
+#define SF_CONTROL_EN	(1 << 7)
+#define SF_CONTROL_IE	(1 << 6)
 
-#define SF_TX_RW		0
+#define SF_TX_WRITE		(0 << 0)
+#define SF_TX_READ		(1 << 0)
 
-#define SF_CMD_START	7
-#define SF_CMD_STOP		6
-#define SF_CMD_READ		5
-#define SF_CMD_WRITE	4
-#define SF_CMD_ACK		3
-#define SF_CMD_IACK		0
+#define SF_CMD_START	(1 << 7)
+#define SF_CMD_STOP		(1 << 6)
+#define SF_CMD_READ		(1 << 5)
+#define SF_CMD_WRITE	(1 << 4)
+#define SF_CMD_ACK		(1 << 3)
+#define SF_CMD_IACK		(1 << 0)
 
-#define SF_STATUS_RXACK	7
-#define SF_STATUS_BUSY	6
-#define SF_STATUS_AL	5
-#define SF_STATUS_TIP	1
-#define SF_STATUS_IP	0
+#define SF_STATUS_RXACK	(1 << 7)
+#define SF_STATUS_BUSY	(1 << 6)
+#define SF_STATUS_AL	(1 << 5)
+#define SF_STATUS_TIP	(1 << 1)
+#define SF_STATUS_IP	(1 << 0)
 
 /* Values */
-#define SF_WRITE_BIT	(0 << SF_TX_RW)
-#define SF_READ_BIT		(1 << SF_TX_RW)
 
 /* Structure declarations */
 struct i2c_sifive_data {
@@ -73,18 +70,17 @@ int i2c_sifive_transfer_one(struct device *dev,
 
 	/* Transmit address */
 	if(msg->flags & I2C_MSG_WRITE) {
-		I2C_REG(config, REG_TRANSMIT) = (addr | SF_WRITE_BIT);
+		I2C_REG(config, REG_TRANSMIT) = (addr | SF_TX_WRITE);
 	} else {
-		I2C_REG(config, REG_TRANSMIT) = (addr | SF_READ_BIT);
+		I2C_REG(config, REG_TRANSMIT) = (addr | SF_TX_READ);
 	}
-	SET_BIT(config, REG_COMMAND, SF_CMD_START);
-	SET_BIT(config, REG_COMMAND, SF_CMD_WRITE);
+	I2C_REG(config, REG_COMMAND) = SF_CMD_START | SF_CMD_WRITE | SF_CMD_IACK;
 
 	/* Wait for transfer */
-	while(IS_BIT_SET(config, REG_STATUS, SF_STATUS_TIP)) ;
+	while(IS_SET(config, REG_STATUS, SF_STATUS_TIP)) ;
 
 	/* Check acknowledge */
-	if(IS_BIT_SET(config, REG_STATUS, SF_STATUS_RXACK))
+	if(IS_SET(config, REG_STATUS, SF_STATUS_RXACK))
 		return -EIO;
 
 	if(msg->flags & I2C_MSG_WRITE) {
@@ -94,16 +90,16 @@ int i2c_sifive_transfer_one(struct device *dev,
 
 			/* On the last byte, set the stop bit if requested */
 			if((i == (msg->len - 1)) && (msg->flags & I2C_MSG_STOP))
-				SET_BIT(config, REG_COMMAND, SF_CMD_STOP);
-
-			/* Write the byte */
-			SET_BIT(config, REG_COMMAND, SF_CMD_WRITE);
+				I2C_REG(config, REG_COMMAND) = \
+					SF_CMD_WRITE | SF_CMD_STOP | SF_CMD_IACK;
+			else
+				I2C_REG(config, REG_COMMAND) = SF_CMD_WRITE | SF_CMD_IACK;
 
 			/* Wait for transfer */
-			while(IS_BIT_SET(config, REG_STATUS, SF_STATUS_TIP)) ;
+			while(IS_SET(config, REG_STATUS, SF_STATUS_TIP)) ;
 
 			/* Check acknowledge */
-			if(IS_BIT_SET(config, REG_STATUS, SF_STATUS_RXACK))
+			if(IS_SET(config, REG_STATUS, SF_STATUS_RXACK))
 				return -EIO;
 		}
 	} else {
@@ -120,11 +116,11 @@ int i2c_sifive_init(struct device *dev) {
 	struct i2c_sifive_data *data = dev->driver_data;
 	struct i2c_sifive_cfg *config = dev->config->config_info;
 
-	/* Enable the I2C peripheral */
-	SET_BIT(config, REG_CONTROL, SF_CONTROL_EN);
+	/* Clear interrupts */
+	I2C_REG(config, REG_COMMAND) = SF_CMD_IACK;
 
-	/* Disable interrupts */
-	CLR_BIT(config, REG_CONTROL, SF_CONTROL_IE);
+	/* Enable the I2C peripheral */
+	I2C_REG(config, REG_CONTROL) = SF_CONTROL_EN;
 
 	return 0;
 }
@@ -132,6 +128,9 @@ int i2c_sifive_init(struct device *dev) {
 int i2c_sifive_configure(struct device *dev, u32_t dev_config) {
 	struct i2c_sifive_data *data = dev->driver_data;
 	struct i2c_sifive_cfg *config = dev->config->config_info;
+
+	/* Disable the I2C peripheral */
+	I2C_REG(config, REG_CONTROL) = 0;
 
 	/* Configure bus frequency */
 	const u32_t speed_config = I2C_SPEED_GET(dev_config);
@@ -161,6 +160,9 @@ int i2c_sifive_configure(struct device *dev, u32_t dev_config) {
 	/* We don't support 10-bit addressing */
 	if(dev_config & I2C_ADDR_10_BITS)
 		return -EIO;
+
+	/* Ensable the I2C peripheral */
+	I2C_REG(config, REG_CONTROL) = SF_CONTROL_EN;
 
 	return 0;
 }

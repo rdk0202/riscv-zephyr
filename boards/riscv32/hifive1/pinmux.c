@@ -28,6 +28,10 @@ static int hifive1_pinmux_init(struct device *dev)
 	pinmux_pin_set(p, 9, SIFIVE_PINMUX_IOF0); /* SS2 */
 	pinmux_pin_set(p, 10, SIFIVE_PINMUX_IOF0); /* SS3 */
 
+	/* I2C 0 */
+	pinmux_pin_set(p, 12, SIFIVE_PINMUX_IOF0); /* SS0 */
+	pinmux_pin_set(p, 13, SIFIVE_PINMUX_IOF0); /* MOSI */
+
 	return 0;
 }
 
