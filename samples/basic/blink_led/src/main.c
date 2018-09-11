@@ -34,8 +34,9 @@
 #define PWM_DRIVER	PWM_1_LABEL
 #define PWM_CHANNEL	0
 #elif defined(CONFIG_BOARD_HIFIVE1)
-#define PWM_DRIVER	"pwm_0"
-#define PWM_CHANNEL	0
+/* Blink the red channel of the RGB LED */
+#define PWM_DRIVER	"pwm_1"
+#define PWM_CHANNEL 2		
 #else
 #error "Choose supported PWM driver"
 #endif
