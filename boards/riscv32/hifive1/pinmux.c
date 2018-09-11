@@ -29,10 +29,10 @@ static int hifive1_pinmux_init(struct device *dev)
 	pinmux_pin_set(p, 10, SIFIVE_PINMUX_IOF0); /* SS3 */
 
 	/* PWM 1 */
-	pinmux_pin_set(p, 19, SIFIVE_PINMUX_IOF0); /* PWM1_0 */
-	pinmux_pin_set(p, 20, SIFIVE_PINMUX_IOF0); /* PWM1_1 */
-	pinmux_pin_set(p, 21, SIFIVE_PINMUX_IOF0); /* PWM1_2 */
-	pinmux_pin_set(p, 22, SIFIVE_PINMUX_IOF0); /* PWM1_3 */
+	pinmux_pin_set(p, 19, SIFIVE_PINMUX_IOF1); /* PWM1_0 */
+	pinmux_pin_set(p, 20, SIFIVE_PINMUX_IOF1); /* PWM1_1 */
+	pinmux_pin_set(p, 21, SIFIVE_PINMUX_IOF1); /* PWM1_2 */
+	pinmux_pin_set(p, 22, SIFIVE_PINMUX_IOF1); /* PWM1_3 */
 
 	return 0;
 }
