@@ -33,6 +33,9 @@
 #elif defined(CONFIG_BOARD_COLIBRI_IMX7D_M4)
 #define PWM_DRIVER	PWM_1_LABEL
 #define PWM_CHANNEL	0
+#elif defined(CONFIG_BOARD_HIFIVE1)
+#define PWM_DRIVER	CONFIG_SIFIVE_PWM_0_LABEL
+#define PWM_CHANNEL	0
 #else
 #error "Choose supported PWM driver"
 #endif
