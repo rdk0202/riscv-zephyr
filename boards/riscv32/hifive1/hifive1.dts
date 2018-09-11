@@ -23,3 +23,15 @@
 	status = "ok";
 };
 
+&pwm0 {
+	status = "ok";
+};
+
+&pwm1 {
+	status = "ok";
+};
+
+&pwm2 {
+	status = "ok";
+};
+
