@@ -6,6 +6,7 @@
 
 #include <pwm.h>
 #include <device.h>
+#include <board.h>
 
 /* Macros */
 
@@ -35,25 +36,36 @@ struct pwm_sifive_cfg {
 
 /* API Functions */
 
-int sifive_pin_set(struct device *dev,
+int pwm_sifive_init(struct device *dev) {
+	const struct pwm_sifive_cfg *config = dev->config->config_info;
+	(void) config;
+	return 0;
+}
+
+int pwm_sifive_pin_set(struct device *dev,
 		u32_t pwm,
 		u32_t period_cycles,
 		u32_t pulse_cycles)
 {
-	struct pwm_sifive_cfg *config = dev->config->config_info;
+	const struct pwm_sifive_cfg *config = dev->config->config_info;
+	(void) config;
 	return 0;
 }
 
-int sifive_get_cycles_per_sec(struct device *dev, u32_t pwm, u64_t *cycles) {
-	struct pwm_sifive_cfg *config = dev->config->config_info;
+int pwm_sifive_get_cycles_per_sec(struct device *dev,
+		u32_t pwm,
+		u64_t *cycles)
+{
+	const struct pwm_sifive_cfg *config = dev->config->config_info;
+	(void) config;
 	return 0;
 }
 
 /* Device Instantiation */
 
 static struct pwm_driver_api pwm_sifive_api = {
-	.pin_set = sifive_pin_set,
-	.get_cycles_per_sec = sifive_get_cycles_per_sec,
+	.pin_set = pwm_sifive_pin_set,
+	.get_cycles_per_sec = pwm_sifive_get_cycles_per_sec,
 };
 
 #define PWM_SIFIVE_INIT(n)	\
@@ -68,7 +80,7 @@ static struct pwm_driver_api pwm_sifive_api = {
 			&pwm_sifive_data_##n,	\
 			&pwm_sifive_cfg_##n,	\
 			POST_KERNEL,	\
-			CONFIG_PWM_INIT_PRIORITY,	\
+			CONFIG_PWM_SIFIVE_INIT_PRIORITY,	\
 			&pwm_sifive_api)
 
 #ifdef CONFIG_SIFIVE_PWM_0_LABEL

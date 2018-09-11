@@ -8,7 +8,18 @@
 
 menuconfig PWM_SIFIVE
 	bool "SiFive Freedom PWM driver"
-	depends on PWM && SOC_FAMILY_RISCV32_SIFIVE_FREEDOM
+	depends on PWM
+	depends on SOC_SERIES_RISCV32_SIFIVE_FREEDOM
+	depends on HAS_DTS
 	help
 		Enable the PWM driver for the SiFive Freedom platform
 
+if PWM_SIFIVE
+
+config PWM_SIFIVE_INIT_PRIORITY
+	int "Init Priority"
+	default 80
+	help
+		SiFive PWM Driver Initialization Priority
+
+endif # PWM_SIFIVE

@@ -110,6 +110,7 @@
 			interrupts = <40 41 42 43>;
 			reg = <0x10015000 0x1000>;
 			reg-names = "control";
+			label = "pwm_0";
 			status = "disabled";
 		};
 		pwm1: pwm@10025000 {
@@ -118,6 +119,7 @@
 			interrupts = <44 45 46 47>;
 			reg = <0x10025000 0x1000>;
 			reg-names = "control";
+			label = "pwm_1";
 			status = "disabled";
 		};
 		pwm2: pwm@10035000 {
@@ -126,6 +128,7 @@
 			interrupts = <48 49 50 51>;
 			reg = <0x10035000 0x1000>;
 			reg-names = "control";
+			label = "pwm_2";
 			status = "disabled";
 		};
 		modeselect: rom@1000 {
