@@ -57,7 +57,9 @@ int pwm_sifive_get_cycles_per_sec(struct device *dev,
 		u64_t *cycles)
 {
 	const struct pwm_sifive_cfg *config = dev->config->config_info;
-	(void) config;
+
+	*cycles = config->f_sys;
+
 	return 0;
 }
 
