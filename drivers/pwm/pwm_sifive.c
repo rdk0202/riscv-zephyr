@@ -40,6 +40,8 @@
 #define SF_PWMSCALEMASK	0xF
 #define SF_PWMSCALE(_val)	(SF_PWMSCALEMASK & (_val))
 
+#define SF_PWMCOUNT_MIN_WIDTH	15
+
 /* Structure Declarations */
 
 struct pwm_sifive_data {};
@@ -87,8 +89,12 @@ int pwm_sifive_pin_set(struct device *dev,
 	if(pwm >= SF_NUMCHANNELS)
 		return -ENOTSUP;
 
-	/* TODO: Something like this */
-	if((pwm == 0) && (period_cycles != pulse_cycles))
+	/* Channel 0 sets the period, we can't output PWM with it */
+	if((pwm == 0))
+		return -ENOTSUP;
+
+	/* We can't support periods greater than we can store in pwmcount */
+	if(period_cycles > ((1 << (config->cmpwidth + SF_PWMCOUNT_MIN_WIDTH)) - 1))
 		return -ENOTSUP;
 
 	/* Calculate the maximum value that pwmcmpX can be set to */
