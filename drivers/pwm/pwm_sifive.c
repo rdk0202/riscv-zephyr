@@ -63,7 +63,16 @@ int pwm_sifive_init(struct device *dev) {
 	/* Enable continuous operation */
 	BIT_SET(PWM_REG(config, REG_PWMCFG), SF_PWMENALWAYS);
 
-	/* TODO: Clear all channels? */
+	/* Clear IP config bits */
+	BIT_CLR(PWM_REG(config, REG_PWMCFG), SF_PWMSTICKY);
+	BIT_CLR(PWM_REG(config, REG_PWMCFG), SF_PWMDEGLITCH);
+
+	/* Clear all channels */
+	for(int i = 0; i < SF_NUMCHANNELS; i++) {
+		PWM_REG(config, REG_PWMCMP(i)) = 0;
+		BIT_CLR(PWM_REG(config, REG_PWMCFG), SF_PWMCMPCENTER(i));
+		BIT_CLR(PWM_REG(config, REG_PWMCFG), SF_PWMCMPGANG(i));
+	}
 
 	return 0;
 }
@@ -74,7 +83,6 @@ int pwm_sifive_pin_set(struct device *dev,
 		u32_t pulse_cycles)
 {
 	const struct pwm_sifive_cfg *config = dev->config->config_info;
-	(void) config;
 
 	if(pwm >= SF_NUMCHANNELS)
 		return -ENOTSUP;
@@ -84,7 +92,7 @@ int pwm_sifive_pin_set(struct device *dev,
 		return -ENOTSUP;
 
 	/* Calculate the maximum value that pwmcmpX can be set to */
-	u32_t max_cmp_val = ((1 << (config->cmpwidth + 1)) - 1);
+	u32_t max_cmp_val = ((1 << config->cmpwidth) - 1);
 
 	/* Find the minimum value of pwmscale that will allow us to set the
 	 * requested period */
