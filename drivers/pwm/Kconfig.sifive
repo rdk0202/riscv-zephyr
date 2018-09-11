@@ -22,4 +22,10 @@ config PWM_SIFIVE_INIT_PRIORITY
 	help
 		SiFive PWM Driver Initialization Priority
 
+config PWM_SIFIVE_CMPWIDTH
+	int "Compare width"
+	default 16
+	help
+		PWM Peripheral compare width
+
 endif # PWM_SIFIVE
