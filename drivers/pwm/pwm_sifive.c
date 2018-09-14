@@ -161,8 +161,8 @@ int pwm_sifive_pin_set(struct device *dev,
 	/* Set the duty cycle by setting pwmcmpX */
 	PWM_REG(config, REG_PWMCMP(pwm)) = (pulse_cycles >> pwmscale);
 
-	SYS_LOG_DBG("pwmscale: %d, pwmcmp0: %d, pwmcmp%d: %d",
-			pwmscale, (period_cycles >> pwmscale),
+	SYS_LOG_DBG("channel: %d, pwmscale: %d, pwmcmp0: %d, pwmcmp%d: %d",
+			pwm, pwmscale, (period_cycles >> pwmscale),
 			pwm, (pulse_cycles >> pwmscale));
 
 	return 0;
