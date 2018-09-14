@@ -8,6 +8,9 @@
 #include <device.h>
 #include <board.h>
 
+#define SYS_LOG_LEVEL CONFIG_SYS_LOG_PWM_LEVEL
+#include <logging/sys_log.h>
+
 /* Macros */
 
 #define _REG32(_base, _offset)	(*(volatile u32_t *) ((_base) + (_offset)))	
@@ -79,23 +82,52 @@ int pwm_sifive_init(struct device *dev) {
 	return 0;
 }
 
+/*
+ * Set the period and pulse width for a single PWM output.
+ *
+ * Parameters:
+ * dev		- Pointer to the driver instance
+ * pwm		- PWM channel
+ * period	- Period in clock cycles
+ * pulse	- Pulse width in clock cycles
+ *
+ * Return values:
+ * 0		- Upon success
+ * -EFAULT	- If the device instance was NULL
+ * -EINVAL	- If an invalid PWM channel was requested
+ * -ENOTSUP - If PWM channel 0 was requested
+ * -EIO		- If the requested period or pulse length cannot be supported
+ */
 int pwm_sifive_pin_set(struct device *dev,
 		u32_t pwm,
 		u32_t period_cycles,
 		u32_t pulse_cycles)
 {
+	if(dev == NULL) {
+		SYS_LOG_ERR("The device instance pointer was NULL\n");
+		return -EFAULT;
+	}
+
 	const struct pwm_sifive_cfg *config = dev->config->config_info;
 
-	if(pwm >= SF_NUMCHANNELS)
-		return -ENOTSUP;
+	if(pwm >= SF_NUMCHANNELS) {
+		SYS_LOG_ERR("The requested PWM channel %d is invalid\n", pwm);
+		return -EINVAL;
+	}
 
 	/* Channel 0 sets the period, we can't output PWM with it */
-	if((pwm == 0))
+	if((pwm == 0)) {
+		SYS_LOG_ERR("PWM channel 0 cannot be configured\n");
 		return -ENOTSUP;
+	}
 
 	/* We can't support periods greater than we can store in pwmcount */
-	if(period_cycles > ((1 << (config->cmpwidth + SF_PWMCOUNT_MIN_WIDTH)) - 1))
-		return -ENOTSUP;
+	u32_t pwmcount_max = (1 << (config->cmpwidth + SF_PWMCOUNT_MIN_WIDTH)) - 1;
+	if(period_cycles > pwmcount_max) {
+		SYS_LOG_ERR("Requested period is %d but maximum allowable is %d\n",
+				period_cycles, pwmcount_max);
+		return -EIO;
+	}
 
 	/* Calculate the maximum value that pwmcmpX can be set to */
 	u32_t max_cmp_val = ((1 << config->cmpwidth) - 1);
@@ -107,8 +139,17 @@ int pwm_sifive_pin_set(struct device *dev,
 		pwmscale++;
 
 	/* Make sure that we can scale that much */
-	if(pwmscale > SF_PWMSCALEMASK)
+	if(pwmscale > SF_PWMSCALEMASK) {
+		SYS_LOG_ERR("Requested period is %d but maximum allowable is %d\n",
+				period_cycles, max_cmp_val << pwmscale);
 		return -EIO;
+	}
+
+	if(pulse_cycles > period_cycles) {
+		SYS_LOG_ERR("Requested pulse %d is longer than requested period %d\n",
+				pulse_cycles, period_cycles);	
+		return -EIO;
+	}
 
 	/* Set the pwmscale field */
 	PWM_REG(config, REG_PWMCFG) &= ~(SF_PWMSCALEMASK);
@@ -120,17 +161,37 @@ int pwm_sifive_pin_set(struct device *dev,
 	/* Set the duty cycle by setting pwmcmpX */
 	PWM_REG(config, REG_PWMCMP(pwm)) = (pulse_cycles >> pwmscale);
 
+	SYS_LOG_DBG("pwmscale: %d, pwmcmp0: %d, pwmcmp%d: %d",
+			pwmscale, (period_cycles >> pwmscale),
+			pwm, (pulse_cycles >> pwmscale));
+
 	return 0;
 }
 
+/*
+ * Get the clock frequency driving the PWM peripheral
+ *
+ * Parameters:
+ * dev		- Pointer to the driver instance
+ * pwm		- PWM channel
+ * cycles	- Pointer to variable to hold clock frequency
+ *
+ * Return values:
+ * 0		- Upon success
+ * -EFAULT	- If the device instance was NULL
+ * -EINVAL	- If an invalid PWM channel was requested
+ */
 int pwm_sifive_get_cycles_per_sec(struct device *dev,
 		u32_t pwm,
 		u64_t *cycles)
 {
+	if(dev == NULL)
+		return -EFAULT;
+
 	const struct pwm_sifive_cfg *config = dev->config->config_info;
 
 	if(pwm >= SF_NUMCHANNELS)
-		return -ENOTSUP;
+		return -EINVAL;
 
 	*cycles = config->f_sys;
 
