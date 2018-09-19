@@ -81,6 +81,9 @@ int spi_config(struct device * dev, u32_t frequency, u16_t operation) {
 	else
 		CLR_BIT(SPI_REG(dev, REG_FMT), SF_FMT_ENDIAN);	
 
+	SPI_REG(dev, REG_CSID) = 2;
+	SPI_REG(dev, REG_CSMODE) = SF_CSMODE_AUTO;
+
 	return 0;
 }
 
@@ -112,6 +115,8 @@ int spi_sifive_transceive_one(struct device *dev,
 		send_len = MIN(tx_buf->len, rx_buf->len);
 	}
 
+	SPI_REG(dev, REG_CSMODE) = SF_CSMODE_HOLD;
+
 	for(int i = 0; i < send_len; i++) {
 
 		/* Send a frame */
@@ -131,6 +136,8 @@ int spi_sifive_transceive_one(struct device *dev,
 			spi_sifive_recv(dev);
 		}
 	}
+
+	SPI_REG(dev, REG_CSMODE) = SF_CSMODE_AUTO;
 
 	return 0;
 }

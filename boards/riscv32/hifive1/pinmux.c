@@ -24,6 +24,7 @@ static int hifive1_pinmux_init(struct device *dev)
 	pinmux_pin_set(p, 3, SIFIVE_PINMUX_IOF0); /* MOSI */
 	pinmux_pin_set(p, 4, SIFIVE_PINMUX_IOF0); /* MISO */
 	pinmux_pin_set(p, 5, SIFIVE_PINMUX_IOF0); /* SCK */
+	pinmux_pin_set(p, 9, SIFIVE_PINMUX_IOF0); /* CS */
 
 	return 0;
 }
