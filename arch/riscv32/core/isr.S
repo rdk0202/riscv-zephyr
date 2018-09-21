@@ -16,6 +16,7 @@ GTEXT(__soc_restore_context)
 GTEXT(__soc_is_irq)
 GTEXT(__soc_handle_irq)
 GTEXT(_Fault)
+GTEXT(_Swap)
 
 GTEXT(_k_neg_eagain)
 GTEXT(_is_next_thread_current)
@@ -181,6 +182,23 @@ is_syscall:
 	/*
 	 * Go to reschedule to handle context-switch
 	 */
+
+#ifdef CONFIG_USE_SWITCH
+
+	call _Swap
+
+	/* Restore MEPC register */
+	lw t0, __NANO_ESF_mepc_OFFSET(sp)
+	csrw mepc, t0
+
+	/* Restore SOC-specific MSTATUS register */
+	lw t0, __NANO_ESF_mstatus_OFFSET(sp)
+	csrw SOC_MSTATUS_REG, t0
+
+	SOC_ERET
+
+#endif /* CONFIG_USE_SWITCH */
+
 	j reschedule
 
 is_interrupt:

@@ -7,5 +7,6 @@ zephyr_sources(
   prep_c.c
   reset.S
   swap.S
+  switch.S
   thread.c
 )

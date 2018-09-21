@@ -31,11 +31,19 @@ static ALWAYS_INLINE void kernel_arch_init(void)
 		K_THREAD_STACK_BUFFER(_interrupt_stack) + CONFIG_ISR_STACK_SIZE;
 }
 
+#ifndef CONFIG_USE_SWITCH
+/* If we're using new-style _arch_switch for context switching, this function
+ * is no longer architecture-specific */
 static ALWAYS_INLINE void
 _set_thread_return_value(struct k_thread *thread, unsigned int value)
 {
 	thread->arch.swap_return_value = value;
 }
+# else
+/* Point _arch_switch at our architecture-specific switch function */
+extern void _riscv_switch(void *switch_to, void **switch_from);
+#define _arch_switch _riscv_switch
+#endif /* CONFIG_USE_SWITCH */
 
 static inline void _IntLibInit(void)
 {
