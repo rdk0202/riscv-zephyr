@@ -16,7 +16,7 @@ GTEXT(__soc_restore_context)
 GTEXT(__soc_is_irq)
 GTEXT(__soc_handle_irq)
 GTEXT(_Fault)
-GTEXT(_Swap)
+GTEXT(_reschedule)
 
 GTEXT(_k_neg_eagain)
 GTEXT(_is_next_thread_current)
@@ -185,7 +185,7 @@ is_syscall:
 
 #ifdef CONFIG_USE_SWITCH
 
-	call _Swap
+	call _reschedule
 
 	/* Restore MEPC register */
 	lw t0, __NANO_ESF_mepc_OFFSET(sp)
@@ -199,20 +199,20 @@ is_syscall:
 
 #endif /* CONFIG_USE_SWITCH */
 
-	j reschedule
-
 is_interrupt:
 	/*
 	 * Save current thread stack pointer and switch
 	 * stack pointer to interrupt stack.
 	 */
 
+	call _arch_curr_cpu
+	mv t2, a0
+
 	/* Save thread stack pointer to temp register t0 */
 	addi t0, sp, 0
 
 	/* Switch to interrupt stack */
-	la t2, _kernel
-	lw sp, _kernel_offset_to_irq_stack(t2)
+	lw sp, _cpu_offset_to_irq_stack(t2)
 
 	/*
 	 * Save thread stack pointer on interrupt stack
@@ -221,27 +221,11 @@ is_interrupt:
 	addi sp, sp, -16
 	sw t0, 0x00(sp)
 
-on_irq_stack:
-	/* Increment _kernel.nested variable */
-	lw t3, _kernel_offset_to_nested(t2)
+	/* Increment _cpu.nested variable */
+	lw t3, _cpu_offset_to_nested(t2)
 	addi t3, t3, 1
-	sw t3, _kernel_offset_to_nested(t2)
+	sw t3, _cpu_offset_to_nested(t2)
 
-	/*
-	 * If we are here due to a system call, t1 register should != 0.
-	 * In this case, perform IRQ offloading, otherwise jump to call_irq
-	 */
-	beqz t1, call_irq
-
-	/*
-	 * Call _irq_do_offload to handle IRQ offloading.
-	 * Set return address to on_thread_stack in order to jump there
-	 * upon returning from _irq_do_offload
-	 */
-	la ra, on_thread_stack
-	tail _irq_do_offload
-
-call_irq:
 #ifdef CONFIG_TRACING
 	call z_sys_trace_isr_enter
 #endif
@@ -278,13 +262,14 @@ call_irq:
 	jalr ra, t1
 
 on_thread_stack:
-	/* Get reference to _kernel */
-	la t1, _kernel
+	/* Get reference to _cpu */
+	call _arch_curr_cpu
+	mv t1, a0
 
-	/* Decrement _kernel.nested variable */
-	lw t2, _kernel_offset_to_nested(t1)
+	/* Decrement _cpu.nested variable */
+	lw t2, _cpu_offset_to_nested(t1)
 	addi t2, t2, -1
-	sw t2, _kernel_offset_to_nested(t1)
+	sw t2, _cpu_offset_to_nested(t1)
 
 	/* Restore thread stack pointer */
 	lw t0, 0x00(sp)
@@ -292,174 +277,19 @@ on_thread_stack:
 
 #ifdef CONFIG_STACK_SENTINEL
 	call _check_stack_sentinel
-	la t1, _kernel
+	call _arch_curr_cpu
+	mv t1, a0
 #endif
 
 #ifdef CONFIG_PREEMPT_ENABLED
 	/*
-	 * Check if we need to perform a reschedule
+	 * Check if we need to perform a reschedule TODO
 	 */
-
-	/* Get pointer to _kernel.current */
-	lw t2, _kernel_offset_to_current(t1)
-
-	/*
-	 * Check if next thread to schedule is current thread.
-	 * If yes do not perform a reschedule
-	 */
-	lw t3, _kernel_offset_to_ready_q_cache(t1)
-	beq t3, t2, no_reschedule
 #else
 	j no_reschedule
 #endif /* CONFIG_PREEMPT_ENABLED */
-
-reschedule:
-#if CONFIG_TIMESLICING
-	call _update_time_slice_before_swap
-#endif
-#if CONFIG_TRACING
-	call z_sys_trace_thread_switched_in
-#endif
-	/* Get reference to _kernel */
-	la t0, _kernel
-
-	/* Get pointer to _kernel.current */
-	lw t1, _kernel_offset_to_current(t0)
-
-	/*
-	 * Save callee-saved registers of current thread
-	 * prior to handle context-switching
-	 */
-	sw s0, _thread_offset_to_s0(t1)
-	sw s1, _thread_offset_to_s1(t1)
-	sw s2, _thread_offset_to_s2(t1)
-	sw s3, _thread_offset_to_s3(t1)
-	sw s4, _thread_offset_to_s4(t1)
-	sw s5, _thread_offset_to_s5(t1)
-	sw s6, _thread_offset_to_s6(t1)
-	sw s7, _thread_offset_to_s7(t1)
-	sw s8, _thread_offset_to_s8(t1)
-	sw s9, _thread_offset_to_s9(t1)
-	sw s10, _thread_offset_to_s10(t1)
-	sw s11, _thread_offset_to_s11(t1)
-
-	/*
-	 * Save stack pointer of current thread and set the default return value
-	 * of _Swap to _k_neg_eagain for the thread.
-	 */
-	sw sp, _thread_offset_to_sp(t1)
-	la t2, _k_neg_eagain
-	lw t3, 0x00(t2)
-	sw t3, _thread_offset_to_swap_return_value(t1)
-
-	/* Get next thread to schedule. */
-	lw t1, _kernel_offset_to_ready_q_cache(t0)
-
-	/*
-	 * Set _kernel.current to new thread loaded in t1
-	 */
-	sw t1, _kernel_offset_to_current(t0)
-
-	/* Switch to new thread stack */
-	lw sp, _thread_offset_to_sp(t1)
-
-	/* Restore callee-saved registers of new thread */
-	lw s0, _thread_offset_to_s0(t1)
-	lw s1, _thread_offset_to_s1(t1)
-	lw s2, _thread_offset_to_s2(t1)
-	lw s3, _thread_offset_to_s3(t1)
-	lw s4, _thread_offset_to_s4(t1)
-	lw s5, _thread_offset_to_s5(t1)
-	lw s6, _thread_offset_to_s6(t1)
-	lw s7, _thread_offset_to_s7(t1)
-	lw s8, _thread_offset_to_s8(t1)
-	lw s9, _thread_offset_to_s9(t1)
-	lw s10, _thread_offset_to_s10(t1)
-	lw s11, _thread_offset_to_s11(t1)
-
-#ifdef CONFIG_EXECUTION_BENCHMARKING
-	addi sp, sp, -__NANO_ESF_SIZEOF
-
-	sw ra, __NANO_ESF_ra_OFFSET(sp)
-	sw gp, __NANO_ESF_gp_OFFSET(sp)
-	sw tp, __NANO_ESF_tp_OFFSET(sp)
-	sw t0, __NANO_ESF_t0_OFFSET(sp)
-	sw t1, __NANO_ESF_t1_OFFSET(sp)
-	sw t2, __NANO_ESF_t2_OFFSET(sp)
-	sw t3, __NANO_ESF_t3_OFFSET(sp)
-	sw t4, __NANO_ESF_t4_OFFSET(sp)
-	sw t5, __NANO_ESF_t5_OFFSET(sp)
-	sw t6, __NANO_ESF_t6_OFFSET(sp)
-	sw a0, __NANO_ESF_a0_OFFSET(sp)
-	sw a1, __NANO_ESF_a1_OFFSET(sp)
-	sw a2, __NANO_ESF_a2_OFFSET(sp)
-	sw a3, __NANO_ESF_a3_OFFSET(sp)
-	sw a4, __NANO_ESF_a4_OFFSET(sp)
-	sw a5, __NANO_ESF_a5_OFFSET(sp)
-	sw a6, __NANO_ESF_a6_OFFSET(sp)
-	sw a7, __NANO_ESF_a7_OFFSET(sp)
-
-	call read_timer_end_of_swap
-
-	lw ra, __NANO_ESF_ra_OFFSET(sp)
-	lw gp, __NANO_ESF_gp_OFFSET(sp)
-	lw tp, __NANO_ESF_tp_OFFSET(sp)
-	lw t0, __NANO_ESF_t0_OFFSET(sp)
-	lw t1, __NANO_ESF_t1_OFFSET(sp)
-	lw t2, __NANO_ESF_t2_OFFSET(sp)
-	lw t3, __NANO_ESF_t3_OFFSET(sp)
-	lw t4, __NANO_ESF_t4_OFFSET(sp)
-	lw t5, __NANO_ESF_t5_OFFSET(sp)
-	lw t6, __NANO_ESF_t6_OFFSET(sp)
-	lw a0, __NANO_ESF_a0_OFFSET(sp)
-	lw a1, __NANO_ESF_a1_OFFSET(sp)
-	lw a2, __NANO_ESF_a2_OFFSET(sp)
-	lw a3, __NANO_ESF_a3_OFFSET(sp)
-	lw a4, __NANO_ESF_a4_OFFSET(sp)
-	lw a5, __NANO_ESF_a5_OFFSET(sp)
-	lw a6, __NANO_ESF_a6_OFFSET(sp)
-	lw a7, __NANO_ESF_a7_OFFSET(sp)
-
-	/* Release stack space */
-	addi sp, sp, __NANO_ESF_SIZEOF
-#endif
+	call _reschedule
 
 no_reschedule:
-#ifdef CONFIG_RISCV_SOC_CONTEXT_SAVE
-	/* Restore context at SOC level */
-	jal ra, __soc_restore_context
-#endif /* CONFIG_RISCV_SOC_CONTEXT_SAVE */
-
-	/* Restore MEPC register */
-	lw t0, __NANO_ESF_mepc_OFFSET(sp)
-	csrw mepc, t0
-
-	/* Restore SOC-specific MSTATUS register */
-	lw t0, __NANO_ESF_mstatus_OFFSET(sp)
-	csrw SOC_MSTATUS_REG, t0
-
-	/* Restore caller-saved registers from thread stack */
-	lw ra, __NANO_ESF_ra_OFFSET(sp)
-	lw gp, __NANO_ESF_gp_OFFSET(sp)
-	lw tp, __NANO_ESF_tp_OFFSET(sp)
-	lw t0, __NANO_ESF_t0_OFFSET(sp)
-	lw t1, __NANO_ESF_t1_OFFSET(sp)
-	lw t2, __NANO_ESF_t2_OFFSET(sp)
-	lw t3, __NANO_ESF_t3_OFFSET(sp)
-	lw t4, __NANO_ESF_t4_OFFSET(sp)
-	lw t5, __NANO_ESF_t5_OFFSET(sp)
-	lw t6, __NANO_ESF_t6_OFFSET(sp)
-	lw a0, __NANO_ESF_a0_OFFSET(sp)
-	lw a1, __NANO_ESF_a1_OFFSET(sp)
-	lw a2, __NANO_ESF_a2_OFFSET(sp)
-	lw a3, __NANO_ESF_a3_OFFSET(sp)
-	lw a4, __NANO_ESF_a4_OFFSET(sp)
-	lw a5, __NANO_ESF_a5_OFFSET(sp)
-	lw a6, __NANO_ESF_a6_OFFSET(sp)
-	lw a7, __NANO_ESF_a7_OFFSET(sp)
-
-	/* Release stack space */
-	addi sp, sp, __NANO_ESF_SIZEOF
-
-	/* Call SOC_ERET to exit ISR */
 	SOC_ERET
+

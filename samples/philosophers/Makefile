@@ -4,7 +4,7 @@ ELF_OUT=$(BUILD_DIR)/zephyr/zephyr.elf
 
 ZEPHYR_BOARD=hifive1
 
-QEMU=qemu-system-riscv32
+QEMU=/scratch/nathanielg/riscv-qemu/install/bin/qemu-system-riscv32
 QEMU_MACHINE=sifive_e
 
 GDB=riscv64-sifive-elf-gdb

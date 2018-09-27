@@ -24,11 +24,17 @@ extern "C" {
 #ifndef _ASMLANGUAGE
 void k_cpu_idle(void);
 void k_cpu_atomic_idle(unsigned int key);
+_cpu_t *_arch_curr_cpu(void);
 
 static ALWAYS_INLINE void kernel_arch_init(void)
 {
+#ifdef CONFIG_SMP
+	_kernel.cpus[0].irq_stack =
+		K_THREAD_STACK_BUFFER(_interrupt_stack) + CONFIG_ISR_STACK_SIZE;
+#else
 	_kernel.irq_stack =
 		K_THREAD_STACK_BUFFER(_interrupt_stack) + CONFIG_ISR_STACK_SIZE;
+#endif
 }
 
 #ifndef CONFIG_USE_SWITCH
@@ -55,8 +61,11 @@ static inline void _IntLibInit(void)
 FUNC_NORETURN void _NanoFatalErrorHandler(unsigned int reason,
 					  const NANO_ESF *esf);
 
-
+#ifdef CONFIG_SMP
+#define _is_in_isr() (_arch_curr_cpu()->nested != 0)
+#else
 #define _is_in_isr() (_kernel.nested != 0)
+#endif
 
 #ifdef CONFIG_IRQ_OFFLOAD
 int _irq_do_offload(void);
