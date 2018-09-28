@@ -18,10 +18,6 @@ GTEXT(__soc_handle_irq)
 GTEXT(_Fault)
 GTEXT(_reschedule)
 
-GTEXT(_k_neg_eagain)
-GTEXT(_is_next_thread_current)
-GTEXT(_get_next_ready_thread)
-
 #ifdef CONFIG_TRACING
 GTEXT(z_sys_trace_thread_switched_in)
 GTEXT(z_sys_trace_isr_enter)
@@ -287,24 +283,24 @@ no_reschedule:
 	csrw SOC_MSTATUS_REG, t0
 
 	/* Load caller-saved registers */
-	sw ra, __NANO_ESF_ra_OFFSET(sp)
-	sw gp, __NANO_ESF_gp_OFFSET(sp)
-	sw tp, __NANO_ESF_tp_OFFSET(sp)
-	sw t0, __NANO_ESF_t0_OFFSET(sp)
-	sw t1, __NANO_ESF_t1_OFFSET(sp)
-	sw t2, __NANO_ESF_t2_OFFSET(sp)
-	sw t3, __NANO_ESF_t3_OFFSET(sp)
-	sw t4, __NANO_ESF_t4_OFFSET(sp)
-	sw t5, __NANO_ESF_t5_OFFSET(sp)
-	sw t6, __NANO_ESF_t6_OFFSET(sp)
-	sw a0, __NANO_ESF_a0_OFFSET(sp)
-	sw a1, __NANO_ESF_a1_OFFSET(sp)
-	sw a2, __NANO_ESF_a2_OFFSET(sp)
-	sw a3, __NANO_ESF_a3_OFFSET(sp)
-	sw a4, __NANO_ESF_a4_OFFSET(sp)
-	sw a5, __NANO_ESF_a5_OFFSET(sp)
-	sw a6, __NANO_ESF_a6_OFFSET(sp)
-	sw a7, __NANO_ESF_a7_OFFSET(sp)
+	lw ra, __NANO_ESF_ra_OFFSET(sp)
+	lw gp, __NANO_ESF_gp_OFFSET(sp)
+	lw tp, __NANO_ESF_tp_OFFSET(sp)
+	lw t0, __NANO_ESF_t0_OFFSET(sp)
+	lw t1, __NANO_ESF_t1_OFFSET(sp)
+	lw t2, __NANO_ESF_t2_OFFSET(sp)
+	lw t3, __NANO_ESF_t3_OFFSET(sp)
+	lw t4, __NANO_ESF_t4_OFFSET(sp)
+	lw t5, __NANO_ESF_t5_OFFSET(sp)
+	lw t6, __NANO_ESF_t6_OFFSET(sp)
+	lw a0, __NANO_ESF_a0_OFFSET(sp)
+	lw a1, __NANO_ESF_a1_OFFSET(sp)
+	lw a2, __NANO_ESF_a2_OFFSET(sp)
+	lw a3, __NANO_ESF_a3_OFFSET(sp)
+	lw a4, __NANO_ESF_a4_OFFSET(sp)
+	lw a5, __NANO_ESF_a5_OFFSET(sp)
+	lw a6, __NANO_ESF_a6_OFFSET(sp)
+	lw a7, __NANO_ESF_a7_OFFSET(sp)
 
 	SOC_ERET
 
