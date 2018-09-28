@@ -45,32 +45,57 @@ SECTION_FUNC(exception.other, _riscv_switch)
 	sw a6, __NANO_ESF_a6_OFFSET(sp)
 	sw a7, __NANO_ESF_a7_OFFSET(sp)
 
+	/*
+	 * When we come back to this thread, we want it to just return from
+	 * _riscv_switch
+	 */
+	la t0, _riscv_switch_return
+	sw t0, __NANO_ESF_mepc_OFFSET(sp)
+
+	/* Save SOC-specific MSTATUS register */
+	csrr t0, SOC_MSTATUS_REG
+	sw t0, __NANO_ESF_mstatus_OFFSET(sp)
+
 	/* Store stack pointer in switch_from */
 	sw sp, 0(a1)
 
 	/* Load stack pointer from switch_to */
 	mv sp, a0
 
-	/* Load caller-saved registers */
-	sw ra, __NANO_ESF_ra_OFFSET(sp)
-	sw gp, __NANO_ESF_gp_OFFSET(sp)
-	sw tp, __NANO_ESF_tp_OFFSET(sp)
-	sw t0, __NANO_ESF_t0_OFFSET(sp)
-	sw t1, __NANO_ESF_t1_OFFSET(sp)
-	sw t2, __NANO_ESF_t2_OFFSET(sp)
-	sw t3, __NANO_ESF_t3_OFFSET(sp)
-	sw t4, __NANO_ESF_t4_OFFSET(sp)
-	sw t5, __NANO_ESF_t5_OFFSET(sp)
-	sw t6, __NANO_ESF_t6_OFFSET(sp)
-	sw a0, __NANO_ESF_a0_OFFSET(sp)
-	sw a1, __NANO_ESF_a1_OFFSET(sp)
-	sw a2, __NANO_ESF_a2_OFFSET(sp)
-	sw a3, __NANO_ESF_a3_OFFSET(sp)
-	sw a4, __NANO_ESF_a4_OFFSET(sp)
-	sw a5, __NANO_ESF_a5_OFFSET(sp)
-	sw a6, __NANO_ESF_a6_OFFSET(sp)
-	sw a7, __NANO_ESF_a7_OFFSET(sp)
+	/* Restore MEPC register */
+	lw t0, __NANO_ESF_mepc_OFFSET(sp)
+	csrw mepc, t0
 
+	/* Restore SOC-specific MSTATUS register */
+	lw t0, __NANO_ESF_mstatus_OFFSET(sp)
+	csrw SOC_MSTATUS_REG, t0
+
+	/* Load caller-saved registers */
+	lw ra, __NANO_ESF_ra_OFFSET(sp)
+	lw gp, __NANO_ESF_gp_OFFSET(sp)
+	lw tp, __NANO_ESF_tp_OFFSET(sp)
+	lw t0, __NANO_ESF_t0_OFFSET(sp)
+	lw t1, __NANO_ESF_t1_OFFSET(sp)
+	lw t2, __NANO_ESF_t2_OFFSET(sp)
+	lw t3, __NANO_ESF_t3_OFFSET(sp)
+	lw t4, __NANO_ESF_t4_OFFSET(sp)
+	lw t5, __NANO_ESF_t5_OFFSET(sp)
+	lw t6, __NANO_ESF_t6_OFFSET(sp)
+	lw a0, __NANO_ESF_a0_OFFSET(sp)
+	lw a1, __NANO_ESF_a1_OFFSET(sp)
+	lw a2, __NANO_ESF_a2_OFFSET(sp)
+	lw a3, __NANO_ESF_a3_OFFSET(sp)
+	lw a4, __NANO_ESF_a4_OFFSET(sp)
+	lw a5, __NANO_ESF_a5_OFFSET(sp)
+	lw a6, __NANO_ESF_a6_OFFSET(sp)
+	lw a7, __NANO_ESF_a7_OFFSET(sp)
+
+	/* Free allocated stack space */
+	addi sp, sp, __NANO_ESF_SIZEOF
+
+	SOC_ERET
+
+_riscv_switch_return:
 	/* Free allocated stack space */
 	addi sp, sp, __NANO_ESF_SIZEOF
 

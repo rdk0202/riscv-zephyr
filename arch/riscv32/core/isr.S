@@ -179,23 +179,12 @@ is_syscall:
 	bnez t1, is_interrupt
 #endif
 
-	/*
-	 * Go to reschedule to handle context-switch
-	 */
-
 #ifdef CONFIG_USE_SWITCH
 
 	call _reschedule
 
-	/* Restore MEPC register */
-	lw t0, __NANO_ESF_mepc_OFFSET(sp)
-	csrw mepc, t0
+	j no_reschedule
 
-	/* Restore SOC-specific MSTATUS register */
-	lw t0, __NANO_ESF_mstatus_OFFSET(sp)
-	csrw SOC_MSTATUS_REG, t0
-
-	SOC_ERET
 
 #endif /* CONFIG_USE_SWITCH */
 
@@ -285,11 +274,37 @@ on_thread_stack:
 	/*
 	 * Check if we need to perform a reschedule TODO
 	 */
-#else
-	j no_reschedule
-#endif /* CONFIG_PREEMPT_ENABLED */
 	call _reschedule
+#endif /* CONFIG_PREEMPT_ENABLED */
 
 no_reschedule:
+	/* Restore MEPC register */
+	lw t0, __NANO_ESF_mepc_OFFSET(sp)
+	csrw mepc, t0
+
+	/* Restore SOC-specific MSTATUS register */
+	lw t0, __NANO_ESF_mstatus_OFFSET(sp)
+	csrw SOC_MSTATUS_REG, t0
+
+	/* Load caller-saved registers */
+	sw ra, __NANO_ESF_ra_OFFSET(sp)
+	sw gp, __NANO_ESF_gp_OFFSET(sp)
+	sw tp, __NANO_ESF_tp_OFFSET(sp)
+	sw t0, __NANO_ESF_t0_OFFSET(sp)
+	sw t1, __NANO_ESF_t1_OFFSET(sp)
+	sw t2, __NANO_ESF_t2_OFFSET(sp)
+	sw t3, __NANO_ESF_t3_OFFSET(sp)
+	sw t4, __NANO_ESF_t4_OFFSET(sp)
+	sw t5, __NANO_ESF_t5_OFFSET(sp)
+	sw t6, __NANO_ESF_t6_OFFSET(sp)
+	sw a0, __NANO_ESF_a0_OFFSET(sp)
+	sw a1, __NANO_ESF_a1_OFFSET(sp)
+	sw a2, __NANO_ESF_a2_OFFSET(sp)
+	sw a3, __NANO_ESF_a3_OFFSET(sp)
+	sw a4, __NANO_ESF_a4_OFFSET(sp)
+	sw a5, __NANO_ESF_a5_OFFSET(sp)
+	sw a6, __NANO_ESF_a6_OFFSET(sp)
+	sw a7, __NANO_ESF_a7_OFFSET(sp)
+
 	SOC_ERET
 
