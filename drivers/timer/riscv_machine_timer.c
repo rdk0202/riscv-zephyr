@@ -6,6 +6,7 @@
 
 #include <kernel.h>
 #include <arch/cpu.h>
+#include <kernel_structs.h>
 #include <device.h>
 #include <system_timer.h>
 #include <board.h>
@@ -64,6 +65,11 @@ static ALWAYS_INLINE void riscv_machine_rearm_timer(void)
 static void riscv_machine_timer_irq_handler(void *unused)
 {
 	ARG_UNUSED(unused);
+	
+	if(_arch_curr_cpu()->id) {
+		return;
+	}
+
 #ifdef CONFIG_EXECUTION_BENCHMARKING
 	extern void read_timer_start_of_tick_handler(void);
 	read_timer_start_of_tick_handler();

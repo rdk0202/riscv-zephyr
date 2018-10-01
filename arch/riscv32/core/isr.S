@@ -11,12 +11,15 @@
 
 /* imports */
 GDATA(_sw_isr_table)
-GTEXT(__soc_save_context)
-GTEXT(__soc_restore_context)
 GTEXT(__soc_is_irq)
 GTEXT(__soc_handle_irq)
-GTEXT(_Fault)
 GTEXT(_reschedule)
+GTEXT(_Fault)
+
+#ifdef CONFIG_RISCV_SOC_CONTEXT_SAVE
+GTEXT(__soc_save_context)
+GTEXT(__soc_restore_context)
+#endif
 
 #ifdef CONFIG_TRACING
 GTEXT(z_sys_trace_thread_switched_in)
@@ -142,11 +145,11 @@ SECTION_FUNC(exception.entry, __irq_wrapper)
 	 * Call _Fault to handle exception.
 	 * Stack pointer is pointing to a NANO_ESF structure, pass it
 	 * to _Fault (via register a0).
-	 * If _Fault shall return, set return address to no_reschedule
+	 * If _Fault shall return, set return address to exit_irq_wrapper
 	 * to restore stack.
 	 */
 	addi a0, sp, 0
-	la ra, no_reschedule
+	la ra, exit_irq_wrapper
 	tail _Fault
 
 is_syscall:
@@ -179,7 +182,7 @@ is_syscall:
 
 	call _reschedule
 
-	j no_reschedule
+	j exit_irq_wrapper
 
 
 #endif /* CONFIG_USE_SWITCH */
@@ -190,11 +193,12 @@ is_interrupt:
 	 * stack pointer to interrupt stack.
 	 */
 
+	/* Get reference to _cpu */
 	call _arch_curr_cpu
 	mv t2, a0
 
 	/* Save thread stack pointer to temp register t0 */
-	addi t0, sp, 0
+	mv t0, sp
 
 	/* Switch to interrupt stack */
 	lw sp, _cpu_offset_to_irq_stack(t2)
@@ -227,7 +231,7 @@ is_interrupt:
 	jal ra, __soc_handle_irq
 
 	/*
-	 * Call corresponding registered function in _sw_isr_table.
+	 * Load corresponding registered function in _sw_isr_table.
 	 * (table is 8-bytes wide, we should shift index by 3)
 	 */
 	la t0, _sw_isr_table
@@ -240,13 +244,14 @@ is_interrupt:
 	/* Load ISR function address in register t1 */
 	lw t1, 0x04(t0)
 
-#ifdef CONFIG_EXECUTION_BENCHMARKING
-	call read_timer_end_of_isr
-#endif
 	/* Call ISR function */
 	jalr ra, t1
 
-on_thread_stack:
+#ifdef CONFIG_EXECUTION_BENCHMARKING
+	call read_timer_end_of_isr
+#endif
+
+restore_thread_stack:
 	/* Get reference to _cpu */
 	call _arch_curr_cpu
 	mv t1, a0
@@ -258,22 +263,18 @@ on_thread_stack:
 
 	/* Restore thread stack pointer */
 	lw t0, 0x00(sp)
-	addi sp, t0, 0
+	mv sp, t0
 
 #ifdef CONFIG_STACK_SENTINEL
 	call _check_stack_sentinel
-	call _arch_curr_cpu
-	mv t1, a0
 #endif
 
 #ifdef CONFIG_PREEMPT_ENABLED
-	/*
-	 * Check if we need to perform a reschedule TODO
-	 */
-	call _reschedule
+	/* Reschedule when returning from interrupt handler */
+	//call _reschedule
 #endif /* CONFIG_PREEMPT_ENABLED */
 
-no_reschedule:
+exit_irq_wrapper:
 	/* Restore MEPC register */
 	lw t0, __NANO_ESF_mepc_OFFSET(sp)
 	csrw mepc, t0

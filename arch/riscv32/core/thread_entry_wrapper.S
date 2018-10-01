@@ -27,6 +27,6 @@ SECTION_FUNC(TEXT, _thread_entry_wrapper)
 	 * return address set to 0 to indicate a non-returning function call.
 	 */
 	
-	csrrsi x0, mstatus, SOC_MSTATUS_MPIE
+	//csrrsi x0, mstatus, SOC_MSTATUS_MPIE
 
 	jal x0, _thread_entry
