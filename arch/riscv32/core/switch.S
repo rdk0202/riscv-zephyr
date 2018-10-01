@@ -45,11 +45,8 @@ SECTION_FUNC(exception.other, _riscv_switch)
 	sw a6, __NANO_ESF_a6_OFFSET(sp)
 	sw a7, __NANO_ESF_a7_OFFSET(sp)
 
-	/*
-	 * When we come back to this thread, we want it to just return from
-	 * _riscv_switch
-	 */
-	la t0, _riscv_switch_return
+	/* Save MEPC register */
+	csrr t0, mepc
 	sw t0, __NANO_ESF_mepc_OFFSET(sp)
 
 	/* Save SOC-specific MSTATUS register */
@@ -90,12 +87,6 @@ SECTION_FUNC(exception.other, _riscv_switch)
 	lw a6, __NANO_ESF_a6_OFFSET(sp)
 	lw a7, __NANO_ESF_a7_OFFSET(sp)
 
-	/* Free allocated stack space */
-	addi sp, sp, __NANO_ESF_SIZEOF
-
-	SOC_ERET
-
-_riscv_switch_return:
 	/* Free allocated stack space */
 	addi sp, sp, __NANO_ESF_SIZEOF
 
