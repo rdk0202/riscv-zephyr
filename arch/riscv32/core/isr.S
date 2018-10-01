@@ -262,8 +262,7 @@ restore_thread_stack:
 	sw t2, _cpu_offset_to_nested(t1)
 
 	/* Restore thread stack pointer */
-	lw t0, 0x00(sp)
-	mv sp, t0
+	lw sp, 0x00(sp)
 
 #ifdef CONFIG_STACK_SENTINEL
 	call _check_stack_sentinel
@@ -302,6 +301,8 @@ exit_irq_wrapper:
 	lw a5, __NANO_ESF_a5_OFFSET(sp)
 	lw a6, __NANO_ESF_a6_OFFSET(sp)
 	lw a7, __NANO_ESF_a7_OFFSET(sp)
+
+	addi sp, sp, __NANO_ESF_SIZEOF
 
 	SOC_ERET
 
