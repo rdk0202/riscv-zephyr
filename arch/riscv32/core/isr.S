@@ -13,7 +13,7 @@
 GDATA(_sw_isr_table)
 GTEXT(__soc_is_irq)
 GTEXT(__soc_handle_irq)
-GTEXT(_reschedule)
+GTEXT(_get_next_switch_handle)
 GTEXT(_Fault)
 
 #ifdef CONFIG_RISCV_SOC_CONTEXT_SAVE
@@ -109,6 +109,34 @@ SECTION_FUNC(exception.entry, __irq_wrapper)
 	jal ra, __soc_save_context
 #endif /* CONFIG_RISCV_SOC_CONTEXT_SAVE */
 
+switch_to_interrupt_stack:
+	/* Get cpu context */
+	call _arch_curr_cpu
+	mv t0, a0
+
+	/* Increment nested interrupt count */
+	lw t1, _cpu_offset_to_nested(t0)
+	addi t2, t1, 1
+	sw t2, _cpu_offset_to_nested(t0)
+
+	/* Save thread stack pointer to temp register t2 */
+	mv t2, sp
+
+	/* If the nested count was nonzero, we're already on the
+	 * interrupt stack */
+	bnez t1, on_interrupt_stack
+
+	/* Switch to interrupt stack */
+	lw sp, _cpu_offset_to_irq_stack(t0)
+
+on_interrupt_stack:
+	/*
+	 * Save thread stack pointer on interrupt stack
+	 * In RISC-V, stack pointer needs to be 16-byte aligned
+	 */
+	addi sp, sp, -16
+	sw t2, 0x00(sp)
+
 	/*
 	 * Check if exception is the result of an interrupt or not.
 	 * (SOC dependent). Following the RISC-V architecture spec, the MSB
@@ -145,11 +173,11 @@ SECTION_FUNC(exception.entry, __irq_wrapper)
 	 * Call _Fault to handle exception.
 	 * Stack pointer is pointing to a NANO_ESF structure, pass it
 	 * to _Fault (via register a0).
-	 * If _Fault shall return, set return address to exit_irq_wrapper
+	 * If _Fault shall return, set return address to leave_interrupt_stack
 	 * to restore stack.
 	 */
 	addi a0, sp, 0
-	la ra, exit_irq_wrapper
+	la ra, leave_interrupt_stack
 	tail _Fault
 
 is_syscall:
@@ -166,55 +194,9 @@ is_syscall:
 	addi t0, t0, 4
 	sw t0, __NANO_ESF_mepc_OFFSET(sp)
 
-#ifdef CONFIG_IRQ_OFFLOAD
-	/*
-	 * Determine if the system call is the result of an IRQ offloading.
-	 * Done by checking if _offload_routine is not pointing to NULL.
-	 * If NULL, jump to reschedule to perform a context-switch, otherwise,
-	 * jump to is_interrupt to handle the IRQ offload.
-	 */
-	la t0, _offload_routine
-	lw t1, 0x00(t0)
-	bnez t1, is_interrupt
-#endif
-
-#ifdef CONFIG_USE_SWITCH
-
-	call _reschedule
-
-	j exit_irq_wrapper
-
-
-#endif /* CONFIG_USE_SWITCH */
+	j leave_interrupt_stack
 
 is_interrupt:
-	/*
-	 * Save current thread stack pointer and switch
-	 * stack pointer to interrupt stack.
-	 */
-
-	/* Get reference to _cpu */
-	call _arch_curr_cpu
-	mv t2, a0
-
-	/* Save thread stack pointer to temp register t0 */
-	mv t0, sp
-
-	/* Switch to interrupt stack */
-	lw sp, _cpu_offset_to_irq_stack(t2)
-
-	/*
-	 * Save thread stack pointer on interrupt stack
-	 * In RISC-V, stack pointer needs to be 16-byte aligned
-	 */
-	addi sp, sp, -16
-	sw t0, 0x00(sp)
-
-	/* Increment _cpu.nested variable */
-	lw t3, _cpu_offset_to_nested(t2)
-	addi t3, t3, 1
-	sw t3, _cpu_offset_to_nested(t2)
-
 #ifdef CONFIG_TRACING
 	call z_sys_trace_isr_enter
 #endif
@@ -251,29 +233,66 @@ is_interrupt:
 	call read_timer_end_of_isr
 #endif
 
-restore_thread_stack:
-	/* Get reference to _cpu */
+leave_interrupt_stack:
+	/* Get cpu context */
 	call _arch_curr_cpu
-	mv t1, a0
+	mv t0, a0
 
-	/* Decrement _cpu.nested variable */
-	lw t2, _cpu_offset_to_nested(t1)
-	addi t2, t2, -1
-	sw t2, _cpu_offset_to_nested(t1)
+	/* Decrement nested count */
+	lw t1, _cpu_offset_to_nested(t0)
+	addi t1, t1, -1
+	sw t1, _cpu_offset_to_nested(t0)
 
-	/* Restore thread stack pointer */
+	/* Get current thread */
+	lw t1, _cpu_offset_to_current(t0)
+
+	/* Save callee-saved registers into current thread */
+	sw s0, _thread_offset_to_s0(t1)
+	sw s1, _thread_offset_to_s1(t1)
+	sw s2, _thread_offset_to_s2(t1)
+	sw s3, _thread_offset_to_s3(t1)
+	sw s4, _thread_offset_to_s4(t1)
+	sw s5, _thread_offset_to_s5(t1)
+	sw s6, _thread_offset_to_s6(t1)
+	sw s7, _thread_offset_to_s7(t1)
+	sw s8, _thread_offset_to_s8(t1)
+	sw s9, _thread_offset_to_s9(t1)
+	sw s10, _thread_offset_to_s10(t1)
+	sw s11, _thread_offset_to_s11(t1)
+
+	/* Load saved thread stack pointer off of the interrupt stack and into
+	 * the argument to _get_next_switch_handle */
+	lw a0, 0x00(sp)
+
+	/* Ask the scheduler for the next thread to run */
+	call _get_next_switch_handle
+
+	/* Save the new stack pointer on the interrupt stack */
+	sw a0, 0x00(sp)
+
+	/* _get_next_switch_handle changes the current thread. Restore
+	 * the callee-saved registers from the new thread */
+	call _arch_curr_cpu
+	lw t0, _cpu_offset_to_current(a0)
+
+	/* Restore callee-saved registers from new current thread */
+	lw s0, _thread_offset_to_s0(t0)
+	lw s1, _thread_offset_to_s1(t0)
+	lw s2, _thread_offset_to_s2(t0)
+	lw s3, _thread_offset_to_s3(t0)
+	lw s4, _thread_offset_to_s4(t0)
+	lw s5, _thread_offset_to_s5(t0)
+	lw s6, _thread_offset_to_s6(t0)
+	lw s7, _thread_offset_to_s7(t0)
+	lw s8, _thread_offset_to_s8(t0)
+	lw s9, _thread_offset_to_s9(t0)
+	lw s10, _thread_offset_to_s10(t0)
+	lw s11, _thread_offset_to_s11(t0)
+
+	/* Switch to the stack returned by _get_next_switch_handle */
 	lw sp, 0x00(sp)
 
-#ifdef CONFIG_STACK_SENTINEL
-	call _check_stack_sentinel
-#endif
-
-#ifdef CONFIG_PREEMPT_ENABLED
-	/* Reschedule when returning from interrupt handler */
-	//call _reschedule
-#endif /* CONFIG_PREEMPT_ENABLED */
-
-exit_irq_wrapper:
+restore_next_thread:
 	/* Restore MEPC register */
 	lw t0, __NANO_ESF_mepc_OFFSET(sp)
 	csrw mepc, t0
@@ -302,7 +321,9 @@ exit_irq_wrapper:
 	lw a6, __NANO_ESF_a6_OFFSET(sp)
 	lw a7, __NANO_ESF_a7_OFFSET(sp)
 
+	/* Free stack space */
 	addi sp, sp, __NANO_ESF_SIZEOF
 
+	/* Return from interrupt */
 	SOC_ERET
 

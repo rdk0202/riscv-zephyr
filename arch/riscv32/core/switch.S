@@ -46,7 +46,7 @@ SECTION_FUNC(exception.other, _riscv_switch)
 	sw a7, __NANO_ESF_a7_OFFSET(sp)
 
 	/* Save MEPC register */
-	csrr t0, mepc
+	la t0, leave_riscv_switch
 	sw t0, __NANO_ESF_mepc_OFFSET(sp)
 
 	/* Save SOC-specific MSTATUS register */
@@ -90,5 +90,8 @@ SECTION_FUNC(exception.other, _riscv_switch)
 	/* Free allocated stack space */
 	addi sp, sp, __NANO_ESF_SIZEOF
 
+	SOC_ERET
+
+leave_riscv_switch:
 	ret
 
