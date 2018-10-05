@@ -5,6 +5,8 @@
  */
 
 #include <kernel.h>
+#include <kernel_structs.h>
+#include <kswap.h>
 
 #ifdef CONFIG_SMP
 
@@ -26,9 +28,6 @@ void _arch_start_cpu(int cpu_num, k_thread_stack_t *stack, int sz,
 	/* Push the go button */
 	__init_riscv_smp_go[cpu_num] = 1;
 }
-
-void smp_timer_init(void) {
-};
 
 #endif /* CONFIG_SMP */
 

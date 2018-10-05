@@ -28,7 +28,7 @@ static volatile riscv_machine_timer_t *mtimecmp =
  * timer compare register by the RTC value + time interval we want timer
  * to interrupt.
  */
-static ALWAYS_INLINE void riscv_machine_rearm_timer(void)
+static ALWAYS_INLINE void riscv_machine_rearm_timer(u32_t hartid)
 {
 	u64_t rtc;
 
@@ -55,8 +55,8 @@ static ALWAYS_INLINE void riscv_machine_rearm_timer(void)
 	 * sys_clock_hw_cycles_per_tick
 	 */
 	rtc += sys_clock_hw_cycles_per_tick;
-	mtimecmp->val_low = (u32_t)(rtc & 0xffffffff);
-	mtimecmp->val_high = (u32_t)((rtc >> 32) & 0xffffffff);
+	mtimecmp[hartid].val_low = (u32_t)(rtc & 0xffffffff);
+	mtimecmp[hartid].val_high = (u32_t)((rtc >> 32) & 0xffffffff);
 
 	/* Enable timer interrupt */
 	irq_enable(RISCV_MACHINE_TIMER_IRQ);
@@ -66,23 +66,27 @@ static void riscv_machine_timer_irq_handler(void *unused)
 {
 	ARG_UNUSED(unused);
 	
-	if(_arch_curr_cpu()->id) {
-		return;
-	}
+	u32_t hartid = _arch_curr_cpu()->id;
+
+	if(hartid == 0) {
+		/* Keep track of ticks only from hart 0 */
 
 #ifdef CONFIG_EXECUTION_BENCHMARKING
-	extern void read_timer_start_of_tick_handler(void);
-	read_timer_start_of_tick_handler();
+		extern void read_timer_start_of_tick_handler(void);
+		read_timer_start_of_tick_handler();
 #endif
 
-	_sys_clock_tick_announce();
+		_sys_clock_tick_announce();
+	}
 
 	/* Rearm timer */
-	riscv_machine_rearm_timer();
+	riscv_machine_rearm_timer(hartid);
 
 #ifdef CONFIG_EXECUTION_BENCHMARKING
-	extern void read_timer_end_of_tick_handler(void);
-	read_timer_end_of_tick_handler();
+	if(hartid == 0) {
+		extern void read_timer_end_of_tick_handler(void);
+		read_timer_end_of_tick_handler();
+	}
 #endif
 }
 
@@ -94,14 +98,21 @@ int _sys_clock_driver_init(struct device *device)
 {
 	ARG_UNUSED(device);
 
+
 	IRQ_CONNECT(RISCV_MACHINE_TIMER_IRQ, 0,
-		    riscv_machine_timer_irq_handler, NULL, 0);
+			riscv_machine_timer_irq_handler, NULL, 0);
 
 	/* Initialize timer, just call riscv_machine_rearm_timer */
-	riscv_machine_rearm_timer();
+	riscv_machine_rearm_timer(_arch_curr_cpu()->id);
 
 	return 0;
 }
+
+#ifdef CONFIG_SMP
+void smp_timer_init(void) {
+	riscv_machine_rearm_timer(_arch_curr_cpu()->id);
+}
+#endif /* CONFIG_SMP */
 
 /**
  *
