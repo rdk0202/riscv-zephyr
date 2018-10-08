@@ -165,7 +165,7 @@ static struct k_thread *next_up(void)
 	 * queue such that we don't want to re-add it".
 	 */
 	int queued = _is_thread_queued(_current);
-	int active = !_is_thread_prevented_from_running(_current);
+	int active = _is_thread_ready(_current);
 
 	/* Choose the best thread that is not current */
 	struct k_thread *th = _priq_run_best(&_kernel.ready_q.runq);
@@ -234,7 +234,9 @@ void _add_thread_to_ready_q(struct k_thread *thread)
 void _move_thread_to_end_of_prio_q(struct k_thread *thread)
 {
 	LOCKED(&sched_lock) {
-		_priq_run_remove(&_kernel.ready_q.runq, thread);
+		if(_is_thread_queued(thread)) {
+			_priq_run_remove(&_kernel.ready_q.runq, thread);
+		}
 		_priq_run_add(&_kernel.ready_q.runq, thread);
 		_mark_thread_as_queued(thread);
 		update_cache(0);

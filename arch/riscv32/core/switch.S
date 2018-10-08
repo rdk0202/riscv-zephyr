@@ -44,13 +44,25 @@ SECTION_FUNC(exception.other, _riscv_switch)
 	sw a5, __NANO_ESF_a5_OFFSET(sp)
 	sw a6, __NANO_ESF_a6_OFFSET(sp)
 	sw a7, __NANO_ESF_a7_OFFSET(sp)
+	sw s0, __NANO_ESF_s0_OFFSET(sp)
+	sw s1, __NANO_ESF_s1_OFFSET(sp)
+	sw s2, __NANO_ESF_s2_OFFSET(sp)
+	sw s3, __NANO_ESF_s3_OFFSET(sp)
+	sw s4, __NANO_ESF_s4_OFFSET(sp)
+	sw s5, __NANO_ESF_s5_OFFSET(sp)
+	sw s6, __NANO_ESF_s6_OFFSET(sp)
+	sw s7, __NANO_ESF_s7_OFFSET(sp)
+	sw s8, __NANO_ESF_s8_OFFSET(sp)
+	sw s9, __NANO_ESF_s9_OFFSET(sp)
+	sw s10, __NANO_ESF_s10_OFFSET(sp)
+	sw s11, __NANO_ESF_s11_OFFSET(sp)
 
-	/* Save MEPC register */
+	/* Set MEPC register to return from _riscv_switch */
 	la t0, leave_riscv_switch
 	sw t0, __NANO_ESF_mepc_OFFSET(sp)
 
-	/* Save SOC-specific MSTATUS register */
-	csrr t0, SOC_MSTATUS_REG
+	/* Set MSTATUS to restore interrupts and machine mode */
+	li t0, SOC_MSTATUS_DEF_RESTORE
 	sw t0, __NANO_ESF_mstatus_OFFSET(sp)
 
 	/* Store stack pointer in switch_from */
@@ -86,6 +98,18 @@ SECTION_FUNC(exception.other, _riscv_switch)
 	lw a5, __NANO_ESF_a5_OFFSET(sp)
 	lw a6, __NANO_ESF_a6_OFFSET(sp)
 	lw a7, __NANO_ESF_a7_OFFSET(sp)
+	lw s0, __NANO_ESF_s0_OFFSET(sp)
+	lw s1, __NANO_ESF_s1_OFFSET(sp)
+	lw s2, __NANO_ESF_s2_OFFSET(sp)
+	lw s3, __NANO_ESF_s3_OFFSET(sp)
+	lw s4, __NANO_ESF_s4_OFFSET(sp)
+	lw s5, __NANO_ESF_s5_OFFSET(sp)
+	lw s6, __NANO_ESF_s6_OFFSET(sp)
+	lw s7, __NANO_ESF_s7_OFFSET(sp)
+	lw s8, __NANO_ESF_s8_OFFSET(sp)
+	lw s9, __NANO_ESF_s9_OFFSET(sp)
+	lw s10, __NANO_ESF_s10_OFFSET(sp)
+	lw s11, __NANO_ESF_s11_OFFSET(sp)
 
 	/* Free allocated stack space */
 	addi sp, sp, __NANO_ESF_SIZEOF

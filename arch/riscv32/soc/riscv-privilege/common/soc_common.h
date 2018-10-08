@@ -39,7 +39,7 @@
  * Default MSTATUS register value to restore from stack
  * upon scheduling a thread for the first time
  */
-#define SOC_MSTATUS_DEF_RESTORE      (SOC_MSTATUS_MPP_M_MODE | SOC_MSTATUS_MPIE | SOC_MSTATUS_IEN)
+#define SOC_MSTATUS_DEF_RESTORE      (SOC_MSTATUS_MPP_M_MODE | SOC_MSTATUS_MPIE)
 
 
 /* SOC-specific MCAUSE bitfields */

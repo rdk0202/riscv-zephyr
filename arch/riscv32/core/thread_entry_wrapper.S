@@ -26,7 +26,5 @@ SECTION_FUNC(TEXT, _thread_entry_wrapper)
 	 * to function _thread_entry. Hence, just call _thread_entry with
 	 * return address set to 0 to indicate a non-returning function call.
 	 */
-	
-	//csrrsi x0, mstatus, SOC_MSTATUS_MPIE
 
 	jal x0, _thread_entry

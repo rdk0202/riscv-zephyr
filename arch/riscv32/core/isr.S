@@ -92,6 +92,18 @@ SECTION_FUNC(exception.entry, __irq_wrapper)
 	sw a5, __NANO_ESF_a5_OFFSET(sp)
 	sw a6, __NANO_ESF_a6_OFFSET(sp)
 	sw a7, __NANO_ESF_a7_OFFSET(sp)
+	sw s0, __NANO_ESF_s0_OFFSET(sp)
+	sw s1, __NANO_ESF_s1_OFFSET(sp)
+	sw s2, __NANO_ESF_s2_OFFSET(sp)
+	sw s3, __NANO_ESF_s3_OFFSET(sp)
+	sw s4, __NANO_ESF_s4_OFFSET(sp)
+	sw s5, __NANO_ESF_s5_OFFSET(sp)
+	sw s6, __NANO_ESF_s6_OFFSET(sp)
+	sw s7, __NANO_ESF_s7_OFFSET(sp)
+	sw s8, __NANO_ESF_s8_OFFSET(sp)
+	sw s9, __NANO_ESF_s9_OFFSET(sp)
+	sw s10, __NANO_ESF_s10_OFFSET(sp)
+	sw s11, __NANO_ESF_s11_OFFSET(sp)
 
 #ifdef CONFIG_EXECUTION_BENCHMARKING
 	call read_timer_start_of_isr
@@ -148,9 +160,6 @@ on_interrupt_stack:
 	 * returned via register a0 (1: interrupt, 0 exception)
 	 */
 	jal ra, __soc_is_irq
-
-	/* If a0 != 0, jump to is_interrupt */
-	addi t1, x0, 0
 	bnez a0, is_interrupt
 
 	/*
@@ -161,22 +170,23 @@ on_interrupt_stack:
 	csrr t0, mcause
 	li t2, SOC_MCAUSE_EXP_MASK
 	and t0, t0, t2
-	li t1, SOC_MCAUSE_ECALL_EXP
 
 	/*
 	 * If mcause == SOC_MCAUSE_ECALL_EXP, handle system call,
 	 * otherwise handle fault
 	 */
+	li t1, SOC_MCAUSE_ECALL_EXP
 	beq t0, t1, is_syscall
 
 	/*
 	 * Call _Fault to handle exception.
-	 * Stack pointer is pointing to a NANO_ESF structure, pass it
+	 * Load the stored stack frame off of the interrupt stack and pass it
 	 * to _Fault (via register a0).
-	 * If _Fault shall return, set return address to leave_interrupt_stack
+	 *
+	 * If _Fault returns, set return address to leave_interrupt_stack
 	 * to restore stack.
 	 */
-	addi a0, sp, 0
+	lw a0, 0x00(sp)
 	la ra, leave_interrupt_stack
 	tail _Fault
 
@@ -243,54 +253,16 @@ leave_interrupt_stack:
 	addi t1, t1, -1
 	sw t1, _cpu_offset_to_nested(t0)
 
-	/* Get current thread */
-	lw t1, _cpu_offset_to_current(t0)
-
-	/* Save callee-saved registers into current thread */
-	sw s0, _thread_offset_to_s0(t1)
-	sw s1, _thread_offset_to_s1(t1)
-	sw s2, _thread_offset_to_s2(t1)
-	sw s3, _thread_offset_to_s3(t1)
-	sw s4, _thread_offset_to_s4(t1)
-	sw s5, _thread_offset_to_s5(t1)
-	sw s6, _thread_offset_to_s6(t1)
-	sw s7, _thread_offset_to_s7(t1)
-	sw s8, _thread_offset_to_s8(t1)
-	sw s9, _thread_offset_to_s9(t1)
-	sw s10, _thread_offset_to_s10(t1)
-	sw s11, _thread_offset_to_s11(t1)
-
-	/* Load saved thread stack pointer off of the interrupt stack and into
+	/* Pop saved thread stack pointer off of the interrupt stack and into
 	 * the argument to _get_next_switch_handle */
 	lw a0, 0x00(sp)
+	addi sp, sp, 16
 
 	/* Ask the scheduler for the next thread to run */
 	call _get_next_switch_handle
 
-	/* Save the new stack pointer on the interrupt stack */
-	sw a0, 0x00(sp)
-
-	/* _get_next_switch_handle changes the current thread. Restore
-	 * the callee-saved registers from the new thread */
-	call _arch_curr_cpu
-	lw t0, _cpu_offset_to_current(a0)
-
-	/* Restore callee-saved registers from new current thread */
-	lw s0, _thread_offset_to_s0(t0)
-	lw s1, _thread_offset_to_s1(t0)
-	lw s2, _thread_offset_to_s2(t0)
-	lw s3, _thread_offset_to_s3(t0)
-	lw s4, _thread_offset_to_s4(t0)
-	lw s5, _thread_offset_to_s5(t0)
-	lw s6, _thread_offset_to_s6(t0)
-	lw s7, _thread_offset_to_s7(t0)
-	lw s8, _thread_offset_to_s8(t0)
-	lw s9, _thread_offset_to_s9(t0)
-	lw s10, _thread_offset_to_s10(t0)
-	lw s11, _thread_offset_to_s11(t0)
-
-	/* Switch to the stack returned by _get_next_switch_handle */
-	lw sp, 0x00(sp)
+	/* Switch to the new stack */
+	mv sp, a0
 
 restore_next_thread:
 	/* Restore MEPC register */
@@ -301,7 +273,7 @@ restore_next_thread:
 	lw t0, __NANO_ESF_mstatus_OFFSET(sp)
 	csrw SOC_MSTATUS_REG, t0
 
-	/* Load caller-saved registers */
+	/* Load saved registers */
 	lw ra, __NANO_ESF_ra_OFFSET(sp)
 	lw gp, __NANO_ESF_gp_OFFSET(sp)
 	lw tp, __NANO_ESF_tp_OFFSET(sp)
@@ -320,6 +292,18 @@ restore_next_thread:
 	lw a5, __NANO_ESF_a5_OFFSET(sp)
 	lw a6, __NANO_ESF_a6_OFFSET(sp)
 	lw a7, __NANO_ESF_a7_OFFSET(sp)
+	lw s0, __NANO_ESF_s0_OFFSET(sp)
+	lw s1, __NANO_ESF_s1_OFFSET(sp)
+	lw s2, __NANO_ESF_s2_OFFSET(sp)
+	lw s3, __NANO_ESF_s3_OFFSET(sp)
+	lw s4, __NANO_ESF_s4_OFFSET(sp)
+	lw s5, __NANO_ESF_s5_OFFSET(sp)
+	lw s6, __NANO_ESF_s6_OFFSET(sp)
+	lw s7, __NANO_ESF_s7_OFFSET(sp)
+	lw s8, __NANO_ESF_s8_OFFSET(sp)
+	lw s9, __NANO_ESF_s9_OFFSET(sp)
+	lw s10, __NANO_ESF_s10_OFFSET(sp)
+	lw s11, __NANO_ESF_s11_OFFSET(sp)
 
 	/* Free stack space */
 	addi sp, sp, __NANO_ESF_SIZEOF
