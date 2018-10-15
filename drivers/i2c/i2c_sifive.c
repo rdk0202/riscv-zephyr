@@ -85,6 +85,15 @@ int i2c_sifive_send_addr(struct device *dev,
 
 	/* Write the command register to start the transfer */
 	I2C_REG(config, REG_COMMAND) = command;
+
+	while(i2c_sifive_busy(dev));
+
+	if(IS_SET(config, REG_STATUS, SF_STATUS_RXACK)) {
+		printk("I2C Rx failed to acknowledge\n");
+		return -EIO;
+	}
+
+	return 0;
 }
 
 int i2c_sifive_write_msg(struct device *dev,
@@ -93,7 +102,13 @@ int i2c_sifive_write_msg(struct device *dev,
 {
 	const struct i2c_sifive_cfg *config = dev->config->config_info;
 
-	i2c_sifive_send_addr(dev, addr, SF_TX_READ);
+	int rc = 0;
+
+	rc = i2c_sifive_send_addr(dev, addr, SF_TX_WRITE);
+	if(rc != 0) {
+		printk("I2C failed to write message\n");
+		return rc;
+	}
 
 	for(int i = 0; i < msg->len; i++) {
 		/* Wait for a previous transfer */
@@ -114,6 +129,14 @@ int i2c_sifive_write_msg(struct device *dev,
 		
 		/* Write command reg */
 		I2C_REG(config, REG_COMMAND) = command;
+
+		/* Wait for a previous transfer */
+		while(i2c_sifive_busy(dev));
+
+		if(IS_SET(config, REG_STATUS, SF_STATUS_RXACK)) {
+			printk("I2C Rx failed to acknowledge\n");
+			return -EIO;
+		}
 	}
 
 	return 0;
@@ -221,8 +244,10 @@ int i2c_sifive_transfer(struct device *dev,
 			rc = i2c_sifive_write_msg(dev, &(msgs[i]), addr);
 		}
 
-		if(rc != 0)
+		if(rc != 0) {
+			printk("I2C failed to transfer messages\n");
 			return rc;
+		}
 	}
 
 	return 0;
