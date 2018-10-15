@@ -63,101 +63,105 @@ struct i2c_sifive_cfg {
 
 /* Helper functions */
 
-int i2c_sifive_transfer_byte(struct device *dev,
-		u8_t byte,
-		bool start,
-		bool stop)
+static bool inline i2c_sifive_busy(struct device *dev) {
+	const struct i2c_sifive_cfg *config = dev->config->config_info;
+	return IS_SET(config, REG_STATUS, SF_STATUS_TIP);
+}
+
+int i2c_sifive_send_addr(struct device *dev,
+		u16_t addr,
+		u16_t rw_flag)
 {
 	const struct i2c_sifive_cfg *config = dev->config->config_info;
 
-	I2C_REG(config, REG_TRANSMIT) = byte;
+	/* Wait for a previous transfer to complete */
+	while(i2c_sifive_busy(dev)) ;
 
-	/* Set command register value */
-	u8_t command_val = SF_CMD_WRITE | SF_CMD_IACK;
-	if(start)
-		command_val |= SF_CMD_START;
-	else if(stop)
-		command_val |= SF_CMD_STOP;
+	/* Set transmit register to address with read/write flag */
+	I2C_REG(config, REG_TRANSMIT) = (addr | rw_flag);
 
-	/* Write command register */
-	I2C_REG(config, REG_COMMAND) = command_val;
+	/* Addresses are always written */
+	u8_t command = SF_CMD_WRITE | SF_CMD_START;
 
-	/* Wait for the transfer to complete */
-	while(IS_SET(config, REG_STATUS, SF_STATUS_TIP)) ;
-
-	/* Did we lose arbitration? */
-	if(IS_SET(config, REG_STATUS, SF_STATUS_AL)) {
-		printk("Lost arbitration while sending byte\n");
-		printk("Status: 0x%02X\n", I2C_REG(config, REG_STATUS));
-		return -EIO;
-	}
-
-	/* Did the peripheral acknowledge? */
-	if(IS_SET(config, REG_STATUS, SF_STATUS_RXACK)) {
-		printk("Sent byte not acknowledged\n");
-		printk("Status: 0x%02X\n", I2C_REG(config, REG_STATUS));
-		return -EIO;
-	}
-
-	return 0;
+	/* Write the command register to start the transfer */
+	I2C_REG(config, REG_COMMAND) = command;
 }
 
-int i2c_sifive_transfer_one(struct device *dev,
+int i2c_sifive_write_msg(struct device *dev,
 		struct i2c_msg *msg,
 		u16_t addr)
 {
-	struct i2c_sifive_data *data = dev->driver_data;
 	const struct i2c_sifive_cfg *config = dev->config->config_info;
 
-	int rc;
+	i2c_sifive_send_addr(dev, addr, SF_TX_READ);
 
-	/* Transmit address */
-	if(msg->flags & I2C_MSG_WRITE) {
-		rc = i2c_sifive_transfer_byte(dev, (addr | SF_TX_WRITE), true, false);
-		if(rc != 0) {
-			printk("Failed to transfer address\n");
-			return rc;
-		}
-	} else {
-		rc = i2c_sifive_transfer_byte(dev, (addr | SF_TX_READ), true, false);
-		if(rc != 0) {
-			printk("Failed to transfer address\n");
-			return rc;
-		}
-	}
+	for(int i = 0; i < msg->len; i++) {
+		/* Wait for a previous transfer */
+		while(i2c_sifive_busy(dev));
 
-	if(msg->flags & I2C_MSG_WRITE) {
-		for(int i = 0; i < msg->len; i++) {
-			/* On the last byte, set the stop bit if requested */
-			bool send_stop = ((i == (msg->len - 1)) &&
-						msg->flags & I2C_MSG_STOP);
+		/* Put data in transmit reg */
+		I2C_REG(config, REG_TRANSMIT) = (msg->buf)[i];
 
-			rc = i2c_sifive_transfer_byte(dev, msg->buf[i], false, send_stop);
-			if(rc != 0) {
-				printk("Failed to send byte\n");
-				return rc;
-			}
+		/* Generate command byte */
+		u8_t command = SF_CMD_WRITE;
+
+		/* On the last byte of the message */
+		if(i == (msg->len - 1)) {
+			/* If the stop bit is requested, set it */
+			if(msg->flags & I2C_MSG_STOP)
+				command |= SF_CMD_STOP;
 		}
-	} else {
-		printk("I2C_MSG_READ not implemented\n");
-		return -EIO;
+		
+		/* Write command reg */
+		I2C_REG(config, REG_COMMAND) = command;
 	}
 
 	return 0;
 }
 
+int i2c_sifive_read_msg(struct device *dev,
+		struct i2c_msg *msg,
+		u16_t addr)
+{
+	const struct i2c_sifive_cfg *config = dev->config->config_info;
+
+	i2c_sifive_send_addr(dev, addr, SF_TX_READ);
+
+	while(i2c_sifive_busy(dev));
+
+	for(int i = 0; i < msg->len; i++) {
+		/* Generate command byte */
+		u8_t command = SF_CMD_READ | SF_CMD_ACK;
+
+		/* On the last byte of the message */
+		if(i == (msg->len - 1)) {
+			/* If the stop bit is requested, set it */
+			if(msg->flags & I2C_MSG_STOP)
+				command |= SF_CMD_STOP;
+		}
+		
+		/* Write command reg */
+		I2C_REG(config, REG_COMMAND) = command;
+
+		/* Wait for the read to complete */
+		while(i2c_sifive_busy(dev));
+
+		/* Store the received byte */
+		(msg->buf)[i] = I2C_REG(config, REG_RECEIVE);
+	}
+
+	return 0;
+}
 
 /* API Functions */
 
 int i2c_sifive_init(struct device *dev) {
-	struct i2c_sifive_data *data = dev->driver_data;
-	const struct i2c_sifive_cfg *config = dev->config->config_info;
+	ARG_UNUSED(dev);
 
 	return 0;
 }
 
 int i2c_sifive_configure(struct device *dev, u32_t dev_config) {
-	struct i2c_sifive_data *data = dev->driver_data;
 	const struct i2c_sifive_cfg *config = dev->config->config_info;
 
 	/* Disable the I2C peripheral */
@@ -211,7 +215,12 @@ int i2c_sifive_transfer(struct device *dev,
 		return -EIO;
 
 	for(int i = 0; i < num_msgs; i++) {
-		rc = i2c_sifive_transfer_one(dev, &(msgs[i]), addr);
+		if(msgs[i].flags & I2C_MSG_READ) {
+			rc = i2c_sifive_read_msg(dev, &(msgs[i]), addr);
+		} else {
+			rc = i2c_sifive_write_msg(dev, &(msgs[i]), addr);
+		}
+
 		if(rc != 0)
 			return rc;
 	}
