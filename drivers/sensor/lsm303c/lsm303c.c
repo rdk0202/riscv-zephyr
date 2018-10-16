@@ -23,6 +23,7 @@ static inline int lsm303c_reboot(struct device *dev)
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
 
+	/* Write the accelerometer reboot bit */
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
 				LSM303C_REG_CTRL_REG6_A,
 				LSM303C_REG_CTRL_REG6_A_BOOT,
@@ -30,7 +31,21 @@ static inline int lsm303c_reboot(struct device *dev)
 		return -EIO;
 	}
 
-	k_busy_wait(50 * USEC_PER_MSEC);
+	/* Poll the accelerometer reboot bit to detect reboot completes */
+	int rc = 0;
+	u8_t boot_reg;
+	while(1) {
+		rc = i2c_reg_read_byte(data->i2c_master, config->i2c_slave_addr,
+				LSM303C_REG_CTRL_REG6_A, &boot_reg);
+		if(rc < 0) {
+			SYS_LOG_DBG("I2C failed to read 0x%02X@0x%02X",
+					LSM303C_REG_CTRL_REG6_A, config->i2c_slave_addr);
+		}
+
+		if((boot_reg & LSM303C_REG_CTRL_REG6_A_BOOT) == 0) {
+			break;
+		}
+	}
 
 	return 0;
 }
@@ -40,9 +55,14 @@ static inline int lsm303c_accel_axis_ctrl(struct device *dev, int x_en,
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
-	u8_t state = (x_en << LSM303C_REG_CTRL_REG1_A_XEN) |
-			(y_en << LSM303C_REG_CTRL_REG1_A_YEN) |
-			(z_en << LSM303C_REG_CTRL_REG1_A_ZEN);
+
+	u8_t state = 0;
+	if(x_en)
+		state |= LSM303C_REG_CTRL_REG1_A_XEN;
+	if(y_en)
+		state |= LSM303C_REG_CTRL_REG1_A_YEN;
+	if(z_en)
+		state |= LSM303C_REG_CTRL_REG1_A_ZEN;
 
 	return i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
 				   LSM303C_REG_CTRL_REG1_A,
@@ -94,7 +114,7 @@ static int lsm303c_magn_set_fs_raw(struct device *dev, u8_t fs)
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
 
-	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
 				LSM303C_REG_CTRL_REG2_M,
 				LSM303C_REG_CTRL_REG2_M_FS_MASK,
 				fs << LSM303C_REG_CTRL_REG2_M_FS_SHIFT) < 0) {
@@ -109,7 +129,7 @@ static int lsm303c_magn_set_odr_raw(struct device *dev, u8_t odr)
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
 
-	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
 				LSM303C_REG_CTRL_REG1_M,
 				LSM303C_REG_CTRL_REG1_M_DO_MASK,
 				odr << LSM303C_REG_CTRL_REG1_M_DO_SHIFT) < 0) {
@@ -123,25 +143,32 @@ static int lsm303c_sample_fetch_accel(struct device *dev)
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
-	u8_t buf[6];
 
-	if (i2c_burst_read(data->i2c_master, config->i2c_slave_addr,
-			   LSM303C_REG_OUT_X_L_A, buf, sizeof(buf)) < 0) {
-		SYS_LOG_DBG("failed to read sample");
-		return -EIO;
+	u8_t buf[6];
+	u8_t addr = LSM303C_REG_OUT_X_L_A;
+
+	for(int i = 0; i < 6; i++) {
+		if(i2c_reg_read_byte(data->i2c_master, config->i2c_slave_addr,
+				   addr + i, buf + i) < 0) {
+			SYS_LOG_DBG("failed to read sample");
+			return -EIO;
+		}
 	}
 
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_X_AXIS)
 	data->accel_sample_x = (s16_t)((u16_t)(buf[0]) |
 				((u16_t)(buf[1]) << 8));
+	SYS_LOG_DBG("Fetched accel sample x: %d", data->accel_sample_x);
 #endif
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_Y_AXIS)
 	data->accel_sample_y = (s16_t)((u16_t)(buf[2]) |
 				((u16_t)(buf[3]) << 8));
+	SYS_LOG_DBG("Fetched accel sample y: %d", data->accel_sample_y);
 #endif
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_Z_AXIS)
 	data->accel_sample_z = (s16_t)((u16_t)(buf[4]) |
 				((u16_t)(buf[5]) << 8));
+	SYS_LOG_DBG("Fetched accel sample z: %d", data->accel_sample_z);
 #endif
 
 	return 0;
@@ -153,7 +180,7 @@ static int lsm303c_sample_fetch_magn(struct device *dev)
 	const struct lsm303c_config *config = dev->config->config_info;
 	u8_t buf[6];
 
-	if (i2c_burst_read(data->i2c_master, config->i2c_slave_addr,
+	if (i2c_burst_read(data->i2c_master, config->i2c_m_slave_addr,
 			   LSM303C_REG_OUT_X_L_M, buf, sizeof(buf)) < 0) {
 		SYS_LOG_DBG("failed to read sample");
 		return -EIO;
@@ -434,11 +461,13 @@ static int lsm303c_init_chip(struct device *dev)
 	const struct lsm303c_config *config = dev->config->config_info;
 	u8_t chip_id;
 
+	/* Reboot chip */
 	if (lsm303c_reboot(dev) < 0) {
 		SYS_LOG_DBG("failed to reboot device");
 		return -EIO;
 	}
 
+	/* Verify chip identity */
 	if (i2c_reg_read_byte(data->i2c_master, config->i2c_slave_addr,
 			      LSM303C_REG_WHO_AM_I_A, &chip_id) < 0) {
 		SYS_LOG_DBG("failed reading chip id");
@@ -450,6 +479,7 @@ static int lsm303c_init_chip(struct device *dev)
 	}
 	SYS_LOG_DBG("chip id 0x%x", chip_id);
 
+	/* Configure accelerometer axis enables */
 	if (lsm303c_accel_axis_ctrl(dev, LSM303C_ACCEL_ENABLE_X_AXIS,
 				    LSM303C_ACCEL_ENABLE_Y_AXIS,
 				    LSM303C_ACCEL_ENABLE_Z_AXIS) < 0) {
@@ -457,12 +487,14 @@ static int lsm303c_init_chip(struct device *dev)
 		return -EIO;
 	}
 
+	/* Configure accelerometer full scale */
 	if (lsm303c_accel_set_fs_raw(dev, LSM303C_DEFAULT_ACCEL_FULLSCALE)
 				     < 0) {
 		SYS_LOG_DBG("failed to set accelerometer full-scale");
 		return -EIO;
 	}
 
+	/* Configure accelerometer sample rate */
 	if (lsm303c_accel_set_odr_raw(dev, LSM303C_DEFAULT_ACCEL_SAMPLING_RATE)
 				      < 0) {
 		SYS_LOG_DBG("failed to set accelerometer sampling rate");
@@ -472,37 +504,39 @@ static int lsm303c_init_chip(struct device *dev)
 	if (lsm303c_magn_axis_ctrl(dev, LSM303C_MAGN_ENABLE_X_AXIS,
 				   LSM303C_MAGN_ENABLE_Y_AXIS,
 				   LSM303C_MAGN_ENABLE_Z_AXIS) < 0) {
-		SYS_LOG_DBG("failed to set magnscope axis");
+		SYS_LOG_DBG("failed to set magnetometer axis");
 		return -EIO;
 	}
 
 	if (lsm303c_magn_set_fs_raw(dev, LSM303C_DEFAULT_MAGN_FULLSCALE)
 				    < 0) {
-		SYS_LOG_DBG("failed to set magnscope full-scale");
+		SYS_LOG_DBG("failed to set magnetometer full-scale");
 		return -EIO;
 	}
 
 	if (lsm303c_magn_set_odr_raw(dev, LSM303C_DEFAULT_MAGN_SAMPLING_RATE)
 				     < 0) {
-		SYS_LOG_DBG("failed to set magnscope sampling rate");
+		SYS_LOG_DBG("failed to set magnetometer sampling rate");
 		return -EIO;
 	}
 
+	/* Set accelerometer block data update */
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
 				LSM303C_REG_CTRL_REG1_A,
 				LSM303C_REG_CTRL_REG1_A_BDU,
 				LSM303C_REG_CTRL_REG1_A_BDU) < 0) {
-		SYS_LOG_DBG("failed to set BDU");
+		SYS_LOG_DBG("failed to set accel BDU");
 		return -EIO;
 	}
 
-	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
+	/* Set accelerometer bust read mode */
+	/*if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
 				LSM303C_REG_CTRL_REG4_A,
 				LSM303C_REG_CTRL_REG4_A_IF_ADD_INC,
 				LSM303C_REG_CTRL_REG4_A_IF_ADD_INC) < 0) {
-		SYS_LOG_DBG("failed to set burst");
+		SYS_LOG_DBG("failed to set accel burst");
 		return -EIO;
-	}
+	}*/
 
 	return 0;
 }
@@ -537,6 +571,7 @@ static int lsm303c_init(struct device *dev)
 static const struct lsm303c_config lsm303c_config = {
 	.i2c_master_dev_name = CONFIG_LSM303C_I2C_MASTER_DEV_NAME,
 	.i2c_slave_addr = CONFIG_LSM303C_I2C_ADDR,
+	.i2c_m_slave_addr = CONFIG_LSM303C_M_I2C_ADDR,
 };
 
 static struct lsm303c_data lsm303c_data;
