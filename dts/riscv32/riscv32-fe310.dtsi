@@ -79,6 +79,15 @@
 			reg-names = "control";
 			label = "i2c_0";
 			status = "disabled";
+
+			/* Devices on the I2C bus */
+			#address-cells = <1>;
+			#size-cells = <0>;
+			lsm303c: accelerometer@3A {
+				compatible = "st,lsm303c";
+				reg = <0x3A>;
+				label = "lsm303c";
+			};
 		};
 		plic: interrupt-controller@c000000 {
 			#interrupt-cells = <1>;

@@ -1,0 +1,22 @@
+#
+# Copyright (c) 2018, SiFive Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+title: STMicroelectronics MEMS sensors LSM303C
+id: st,lsm303c
+version: 0.1
+
+description: >
+    This binding gives a base representation of LSM303C accelerometer,
+    magnetometer, and temperature sensor
+
+inherits:
+    !include i2c-device.yaml
+
+properties:
+    compatible:
+      constraint: "st,lsm303c"
+
+...
