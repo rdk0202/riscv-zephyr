@@ -82,7 +82,7 @@ static int lsm303c_accel_set_odr_raw(struct device *dev, u8_t odr)
 	return 0;
 }
 
-static inline int lsm303c_gyro_axis_ctrl(struct device *dev, int x_en, int y_en,
+static inline int lsm303c_magn_axis_ctrl(struct device *dev, int x_en, int y_en,
 					 int z_en)
 {
 	struct lsm303c_data *data = dev->driver_data;
@@ -99,7 +99,7 @@ static inline int lsm303c_gyro_axis_ctrl(struct device *dev, int x_en, int y_en,
 				   state);
 }
 
-static int lsm303c_gyro_set_fs_raw(struct device *dev, u8_t fs)
+static int lsm303c_magn_set_fs_raw(struct device *dev, u8_t fs)
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
@@ -114,7 +114,7 @@ static int lsm303c_gyro_set_fs_raw(struct device *dev, u8_t fs)
 	return 0;
 }
 
-static int lsm303c_gyro_set_odr_raw(struct device *dev, u8_t odr)
+static int lsm303c_magn_set_odr_raw(struct device *dev, u8_t odr)
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
@@ -157,7 +157,7 @@ static int lsm303c_sample_fetch_accel(struct device *dev)
 	return 0;
 }
 
-static int lsm303c_sample_fetch_gyro(struct device *dev)
+static int lsm303c_sample_fetch_magn(struct device *dev)
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
@@ -169,16 +169,16 @@ static int lsm303c_sample_fetch_gyro(struct device *dev)
 		return -EIO;
 	}
 
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_X_AXIS)
-	data->gyro_sample_x = (s16_t)((u16_t)(buf[0]) |
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
+	data->magn_sample_x = (s16_t)((u16_t)(buf[0]) |
 				((u16_t)(buf[1]) << 8));
 #endif
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_Y_AXIS)
-	data->gyro_sample_y = (s16_t)((u16_t)(buf[2]) |
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_Y_AXIS)
+	data->magn_sample_y = (s16_t)((u16_t)(buf[2]) |
 				((u16_t)(buf[3]) << 8));
 #endif
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_Z_AXIS)
-	data->gyro_sample_z = (s16_t)((u16_t)(buf[4]) |
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_Z_AXIS)
+	data->magn_sample_z = (s16_t)((u16_t)(buf[4]) |
 				((u16_t)(buf[5]) << 8));
 #endif
 
@@ -212,14 +212,14 @@ static int lsm303c_sample_fetch(struct device *dev, enum sensor_channel chan)
 #if defined(CONFIG_LSM303C_ENABLE_TEMP)
 			chan == SENSOR_CHAN_DIE_TEMP ||
 #endif
-			chan == SENSOR_CHAN_GYRO_XYZ);
+			chan == SENSOR_CHAN_MAGN_XYZ);
 
 	switch (chan) {
 	case SENSOR_CHAN_ACCEL_XYZ:
 		lsm303c_sample_fetch_accel(dev);
 		break;
-	case SENSOR_CHAN_GYRO_XYZ:
-		lsm303c_sample_fetch_gyro(dev);
+	case SENSOR_CHAN_MAGN_XYZ:
+		lsm303c_sample_fetch_magn(dev);
 		break;
 #if defined(CONFIG_LSM303C_ENABLE_TEMP)
 	case SENSOR_CHAN_DIE_TEMP:
@@ -228,7 +228,7 @@ static int lsm303c_sample_fetch(struct device *dev, enum sensor_channel chan)
 #endif
 	case SENSOR_CHAN_ALL:
 		lsm303c_sample_fetch_accel(dev);
-		lsm303c_sample_fetch_gyro(dev);
+		lsm303c_sample_fetch_magn(dev);
 #if defined(CONFIG_LSM303C_ENABLE_TEMP)
 		lsm303c_sample_fetch_temp(dev);
 #endif
@@ -297,7 +297,7 @@ static int lsm303c_accel_channel_get(enum sensor_channel chan,
 					LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR);
 }
 
-static inline void lsm303c_gyro_convert(struct sensor_value *val, int raw_val,
+static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
 					float numerator)
 {
 	double dval;
@@ -307,36 +307,36 @@ static inline void lsm303c_gyro_convert(struct sensor_value *val, int raw_val,
 	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
 }
 
-static inline int lsm303c_gyro_get_channel(enum sensor_channel chan,
+static inline int lsm303c_magn_get_channel(enum sensor_channel chan,
 					   struct sensor_value *val,
 					   struct lsm303c_data *data,
 					   float numerator)
 {
 	switch (chan) {
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_X_AXIS)
-	case SENSOR_CHAN_GYRO_X:
-		lsm303c_gyro_convert(val, data->gyro_sample_x, numerator);
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
+	case SENSOR_CHAN_MAGN_X:
+		lsm303c_magn_convert(val, data->magn_sample_x, numerator);
 		break;
 #endif
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_Y_AXIS)
-	case SENSOR_CHAN_GYRO_Y:
-		lsm303c_gyro_convert(val, data->gyro_sample_y, numerator);
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_Y_AXIS)
+	case SENSOR_CHAN_MAGN_Y:
+		lsm303c_magn_convert(val, data->magn_sample_y, numerator);
 		break;
 #endif
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_Z_AXIS)
-	case SENSOR_CHAN_GYRO_Z:
-		lsm303c_gyro_convert(val, data->gyro_sample_z, numerator);
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_Z_AXIS)
+	case SENSOR_CHAN_MAGN_Z:
+		lsm303c_magn_convert(val, data->magn_sample_z, numerator);
 		break;
 #endif
-	case SENSOR_CHAN_GYRO_XYZ:
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_X_AXIS)
-		lsm303c_gyro_convert(val, data->gyro_sample_x, numerator);
+	case SENSOR_CHAN_MAGN_XYZ:
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
+		lsm303c_magn_convert(val, data->magn_sample_x, numerator);
 #endif
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_Y_AXIS)
-		lsm303c_gyro_convert(val + 1, data->gyro_sample_y, numerator);
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_Y_AXIS)
+		lsm303c_magn_convert(val + 1, data->magn_sample_y, numerator);
 #endif
-#if defined(CONFIG_LSM303C_GYRO_ENABLE_Z_AXIS)
-		lsm303c_gyro_convert(val + 2, data->gyro_sample_z, numerator);
+#if defined(CONFIG_LSM303C_MAGN_ENABLE_Z_AXIS)
+		lsm303c_magn_convert(val + 2, data->magn_sample_z, numerator);
 #endif
 		break;
 	default:
@@ -346,16 +346,16 @@ static inline int lsm303c_gyro_get_channel(enum sensor_channel chan,
 	return 0;
 }
 
-static int lsm303c_gyro_channel_get(enum sensor_channel chan,
+static int lsm303c_magn_channel_get(enum sensor_channel chan,
 				    struct sensor_value *val,
 				    struct lsm303c_data *data)
 {
-	return lsm303c_gyro_get_channel(chan, val, data,
-					LSM303C_DEFAULT_GYRO_FULLSCALE_FACTOR);
+	return lsm303c_magn_get_channel(chan, val, data,
+					LSM303C_DEFAULT_MAGN_FULLSCALE_FACTOR);
 }
 
 #if defined(CONFIG_LSM303C_ENABLE_TEMP)
-static void lsm303c_gyro_channel_get_temp(struct sensor_value *val,
+static void lsm303c_magn_channel_get_temp(struct sensor_value *val,
 					  struct lsm303c_data *data)
 {
 	/* val = temp_sample / 16 + 25 */
@@ -377,15 +377,15 @@ static int lsm303c_channel_get(struct device *dev,
 	case SENSOR_CHAN_ACCEL_XYZ:
 		lsm303c_accel_channel_get(chan, val, data);
 		break;
-	case SENSOR_CHAN_GYRO_X:
-	case SENSOR_CHAN_GYRO_Y:
-	case SENSOR_CHAN_GYRO_Z:
-	case SENSOR_CHAN_GYRO_XYZ:
-		lsm303c_gyro_channel_get(chan, val, data);
+	case SENSOR_CHAN_MAGN_X:
+	case SENSOR_CHAN_MAGN_Y:
+	case SENSOR_CHAN_MAGN_Z:
+	case SENSOR_CHAN_MAGN_XYZ:
+		lsm303c_magn_channel_get(chan, val, data);
 		break;
 #if defined(CONFIG_LSM303C_ENABLE_TEMP)
 	case SENSOR_CHAN_DIE_TEMP:
-		lsm303c_gyro_channel_get_temp(val, data);
+		lsm303c_magn_channel_get_temp(val, data);
 		break;
 #endif
 	default:
@@ -441,22 +441,22 @@ static int lsm303c_init_chip(struct device *dev)
 		return -EIO;
 	}
 
-	if (lsm303c_gyro_axis_ctrl(dev, LSM303C_GYRO_ENABLE_X_AXIS,
-				   LSM303C_GYRO_ENABLE_Y_AXIS,
-				   LSM303C_GYRO_ENABLE_Z_AXIS) < 0) {
-		SYS_LOG_DBG("failed to set gyroscope axis");
+	if (lsm303c_magn_axis_ctrl(dev, LSM303C_MAGN_ENABLE_X_AXIS,
+				   LSM303C_MAGN_ENABLE_Y_AXIS,
+				   LSM303C_MAGN_ENABLE_Z_AXIS) < 0) {
+		SYS_LOG_DBG("failed to set magnscope axis");
 		return -EIO;
 	}
 
-	if (lsm303c_gyro_set_fs_raw(dev, LSM303C_DEFAULT_GYRO_FULLSCALE)
+	if (lsm303c_magn_set_fs_raw(dev, LSM303C_DEFAULT_MAGN_FULLSCALE)
 				    < 0) {
-		SYS_LOG_DBG("failed to set gyroscope full-scale");
+		SYS_LOG_DBG("failed to set magnscope full-scale");
 		return -EIO;
 	}
 
-	if (lsm303c_gyro_set_odr_raw(dev, LSM303C_DEFAULT_GYRO_SAMPLING_RATE)
+	if (lsm303c_magn_set_odr_raw(dev, LSM303C_DEFAULT_MAGN_SAMPLING_RATE)
 				     < 0) {
-		SYS_LOG_DBG("failed to set gyroscope sampling rate");
+		SYS_LOG_DBG("failed to set magnscope sampling rate");
 		return -EIO;
 	}
 
