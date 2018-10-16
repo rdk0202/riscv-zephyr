@@ -24,9 +24,9 @@ static inline int lsm303c_reboot(struct device *dev)
 	const struct lsm303c_config *config = dev->config->config_info;
 
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG8,
-				LSM303C_MASK_CTRL_REG8_BOOT,
-				1 << LSM303C_SHIFT_CTRL_REG8_BOOT) < 0) {
+				LSM303C_REG_CTRL_REG6_A,
+				LSM303C_REG_CTRL_REG6_A_BOOT,
+				LSM303C_REG_CTRL_REG6_A_BOOT) < 0) {
 		return -EIO;
 	}
 
@@ -40,15 +40,15 @@ static inline int lsm303c_accel_axis_ctrl(struct device *dev, int x_en,
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
-	u8_t state = (x_en << LSM303C_SHIFT_CTRL_REG5_XL_XEN_XL) |
-			(y_en << LSM303C_SHIFT_CTRL_REG5_XL_YEN_XL) |
-			(z_en << LSM303C_SHIFT_CTRL_REG5_XL_ZEN_XL);
+	u8_t state = (x_en << LSM303C_REG_CTRL_REG1_A_XEN) |
+			(y_en << LSM303C_REG_CTRL_REG1_A_YEN) |
+			(z_en << LSM303C_REG_CTRL_REG1_A_ZEN);
 
 	return i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				   LSM303C_REG_CTRL_REG5_XL,
-				   LSM303C_MASK_CTRL_REG5_XL_XEN_XL |
-				   LSM303C_MASK_CTRL_REG5_XL_YEN_XL |
-				   LSM303C_MASK_CTRL_REG5_XL_ZEN_XL,
+				   LSM303C_REG_CTRL_REG1_A,
+				   LSM303C_REG_CTRL_REG1_A_XEN |
+				   LSM303C_REG_CTRL_REG1_A_YEN |
+				   LSM303C_REG_CTRL_REG1_A_ZEN,
 				   state);
 }
 
@@ -58,9 +58,9 @@ static int lsm303c_accel_set_fs_raw(struct device *dev, u8_t fs)
 	const struct lsm303c_config *config = dev->config->config_info;
 
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG6_XL,
-				LSM303C_MASK_CTRL_REG6_XL_FS_XL,
-				fs << LSM303C_SHIFT_CTRL_REG6_XL_FS_XL) < 0) {
+				LSM303C_REG_CTRL_REG4_A,
+				LSM303C_REG_CTRL_REG4_A_FS_MASK,
+				fs << LSM303C_REG_CTRL_REG4_A_FS_SHIFT) < 0) {
 		return -EIO;
 	}
 
@@ -73,9 +73,9 @@ static int lsm303c_accel_set_odr_raw(struct device *dev, u8_t odr)
 	const struct lsm303c_config *config = dev->config->config_info;
 
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG6_XL,
-				LSM303C_MASK_CTRL_REG6_XL_ODR_XL,
-				odr << LSM303C_SHIFT_CTRL_REG6_XL_ODR_XL) < 0) {
+				LSM303C_REG_CTRL_REG1_A,
+				LSM303C_REG_CTRL_REG1_A_ODR_MASK,
+				odr << LSM303C_REG_CTRL_REG1_A_ODR_SHIFT) < 0) {
 		return -EIO;
 	}
 
@@ -85,18 +85,8 @@ static int lsm303c_accel_set_odr_raw(struct device *dev, u8_t odr)
 static inline int lsm303c_magn_axis_ctrl(struct device *dev, int x_en, int y_en,
 					 int z_en)
 {
-	struct lsm303c_data *data = dev->driver_data;
-	const struct lsm303c_config *config = dev->config->config_info;
-	u8_t state = (x_en << LSM303C_SHIFT_CTRL_REG4_XEN_G) |
-			(y_en << LSM303C_SHIFT_CTRL_REG4_YEN_G) |
-			(z_en << LSM303C_SHIFT_CTRL_REG4_ZEN_G);
-
-	return i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				   LSM303C_REG_CTRL_REG4,
-				   LSM303C_MASK_CTRL_REG4_XEN_G |
-				   LSM303C_MASK_CTRL_REG4_YEN_G |
-				   LSM303C_MASK_CTRL_REG4_ZEN_G,
-				   state);
+	/* TODO: Can these be enabled/disabled? */
+	return 0;
 }
 
 static int lsm303c_magn_set_fs_raw(struct device *dev, u8_t fs)
@@ -105,9 +95,9 @@ static int lsm303c_magn_set_fs_raw(struct device *dev, u8_t fs)
 	const struct lsm303c_config *config = dev->config->config_info;
 
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG1_G,
-				LSM303C_MASK_CTRL_REG1_G_FS_G,
-				fs << LSM303C_SHIFT_CTRL_REG1_G_FS_G) < 0) {
+				LSM303C_REG_CTRL_REG2_M,
+				LSM303C_REG_CTRL_REG2_M_FS_MASK,
+				fs << LSM303C_REG_CTRL_REG2_M_FS_SHIFT) < 0) {
 		return -EIO;
 	}
 
@@ -120,9 +110,9 @@ static int lsm303c_magn_set_odr_raw(struct device *dev, u8_t odr)
 	const struct lsm303c_config *config = dev->config->config_info;
 
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG1_G,
-				LSM303C_MASK_CTRL_REG1_G_ODR_G,
-				odr << LSM303C_SHIFT_CTRL_REG1_G_ODR_G) < 0) {
+				LSM303C_REG_CTRL_REG1_M,
+				LSM303C_REG_CTRL_REG1_M_DO_MASK,
+				odr << LSM303C_REG_CTRL_REG1_M_DO_SHIFT) < 0) {
 		return -EIO;
 	}
 
@@ -136,7 +126,7 @@ static int lsm303c_sample_fetch_accel(struct device *dev)
 	u8_t buf[6];
 
 	if (i2c_burst_read(data->i2c_master, config->i2c_slave_addr,
-			   LSM303C_REG_OUT_X_L_XL, buf, sizeof(buf)) < 0) {
+			   LSM303C_REG_OUT_X_L_A, buf, sizeof(buf)) < 0) {
 		SYS_LOG_DBG("failed to read sample");
 		return -EIO;
 	}
@@ -164,7 +154,7 @@ static int lsm303c_sample_fetch_magn(struct device *dev)
 	u8_t buf[6];
 
 	if (i2c_burst_read(data->i2c_master, config->i2c_slave_addr,
-			   LSM303C_REG_OUT_X_L_G, buf, sizeof(buf)) < 0) {
+			   LSM303C_REG_OUT_X_L_M, buf, sizeof(buf)) < 0) {
 		SYS_LOG_DBG("failed to read sample");
 		return -EIO;
 	}
@@ -450,11 +440,11 @@ static int lsm303c_init_chip(struct device *dev)
 	}
 
 	if (i2c_reg_read_byte(data->i2c_master, config->i2c_slave_addr,
-			      LSM303C_REG_WHO_AM_I, &chip_id) < 0) {
+			      LSM303C_REG_WHO_AM_I_A, &chip_id) < 0) {
 		SYS_LOG_DBG("failed reading chip id");
 		return -EIO;
 	}
-	if (chip_id != LSM303C_VAL_WHO_AM_I) {
+	if (chip_id != LSM303C_VAL_WHO_AM_I_A) {
 		SYS_LOG_DBG("invalid chip id 0x%x", chip_id);
 		return -EIO;
 	}
@@ -499,15 +489,18 @@ static int lsm303c_init_chip(struct device *dev)
 	}
 
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG8,
-				LSM303C_MASK_CTRL_REG8_BDU |
-				LSM303C_MASK_CTRL_REG8_BLE |
-				LSM303C_MASK_CTRL_REG8_IF_ADD_INC,
-				(1 << LSM303C_SHIFT_CTRL_REG8_BDU) |
-				(0 << LSM303C_SHIFT_CTRL_REG8_BLE) |
-				(1 << LSM303C_SHIFT_CTRL_REG8_IF_ADD_INC))
-				< 0) {
-		SYS_LOG_DBG("failed to set BDU, BLE and burst");
+				LSM303C_REG_CTRL_REG1_A,
+				LSM303C_REG_CTRL_REG1_A_BDU,
+				LSM303C_REG_CTRL_REG1_A_BDU) < 0) {
+		SYS_LOG_DBG("failed to set BDU");
+		return -EIO;
+	}
+
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
+				LSM303C_REG_CTRL_REG4_A,
+				LSM303C_REG_CTRL_REG4_A_IF_ADD_INC,
+				LSM303C_REG_CTRL_REG4_A_IF_ADD_INC) < 0) {
+		SYS_LOG_DBG("failed to set burst");
 		return -EIO;
 	}
 
