@@ -240,6 +240,7 @@ static int lsm303c_sample_fetch(struct device *dev, enum sensor_channel chan)
 	return 0;
 }
 
+#ifdef CONFIG_FLOAT
 static inline void lsm303c_accel_convert(struct sensor_value *val, int raw_val,
 					 float scale)
 {
@@ -249,11 +250,29 @@ static inline void lsm303c_accel_convert(struct sensor_value *val, int raw_val,
 	val->val1 = (s32_t)dval;
 	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
 }
+#else
+static inline void lsm303c_accel_convert(struct sensor_value *val, int raw_val,
+					 s32_t scale)
+{
+	long int dval;
 
+	dval = (long int)(raw_val) * scale / 32767;
+	val->val1 = (s32_t)dval;
+	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
+}
+#endif
+
+#ifdef CONFIG_FLOAT
 static inline int lsm303c_accel_get_channel(enum sensor_channel chan,
 					    struct sensor_value *val,
 					    struct lsm303c_data *data,
 					    float scale)
+#else
+static inline int lsm303c_accel_get_channel(enum sensor_channel chan,
+					    struct sensor_value *val,
+					    struct lsm303c_data *data,
+					    s32_t scale)
+#endif
 {
 	switch (chan) {
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_X_AXIS)
@@ -297,6 +316,7 @@ static int lsm303c_accel_channel_get(enum sensor_channel chan,
 					LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR);
 }
 
+#ifdef CONFIG_FLOAT
 static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
 					float numerator)
 {
@@ -306,11 +326,29 @@ static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
 	val->val1 = (s32_t)dval;
 	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
 }
+#else
+static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
+					s32_t numerator)
+{
+	long int dval;
 
+	dval = (long int)(raw_val) * numerator / 1000 * SENSOR_DEG2RAD_INT;
+	val->val1 = (s32_t)dval;
+	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
+}
+#endif
+
+#ifdef CONFIG_FLOAT
 static inline int lsm303c_magn_get_channel(enum sensor_channel chan,
 					   struct sensor_value *val,
 					   struct lsm303c_data *data,
 					   float numerator)
+#else
+static inline int lsm303c_magn_get_channel(enum sensor_channel chan,
+					   struct sensor_value *val,
+					   struct lsm303c_data *data,
+					   s32_t numerator)
+#endif
 {
 	switch (chan) {
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
