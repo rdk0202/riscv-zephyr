@@ -519,6 +519,13 @@ static int lsm303c_init(struct device *dev)
 		return -EINVAL;
 	}
 
+	/* TODO: When and where should the I2C bus get initialized? */
+	u32_t dev_config = (I2C_MODE_MASTER | I2C_SPEED_SET(I2C_SPEED_STANDARD));
+	if(i2c_configure(data->i2c_master, dev_config) != 0) {
+		SYS_LOG_DBG("i2c config failed\n");
+		return -EIO;
+	}
+
 	if (lsm303c_init_chip(dev) < 0) {
 		SYS_LOG_DBG("failed to initialize chip");
 		return -EIO;
