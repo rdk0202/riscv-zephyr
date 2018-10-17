@@ -105,7 +105,37 @@ static int lsm303c_accel_set_odr_raw(struct device *dev, u8_t odr)
 static inline int lsm303c_magn_axis_ctrl(struct device *dev, int x_en, int y_en,
 					 int z_en)
 {
-	/* TODO: Can these be enabled/disabled? */
+	struct lsm303c_data *data = dev->driver_data;
+	const struct lsm303c_config *config = dev->config->config_info;
+
+	int rc = 0;
+
+	/* Enable the X & Y axes */
+	if(x_en || y_en) {
+		u8_t om_state = LSM303C_REG_CTRL_REG1_M_OM_ULTRAHIGH;
+		rc = i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
+				LSM303C_REG_CTRL_REG1_M,
+				LSM303C_REG_CTRL_REG1_M_OM_MASK,
+				om_state << LSM303C_REG_CTRL_REG1_M_OM_SHIFT);
+		if(rc < 0) {
+			SYS_LOG_DBG("Failed to enable x & y magn axes\n");
+			return -EIO;
+		}
+	}
+
+	/* Enable the Z axis */
+	if(z_en) {
+		u8_t om_state = LSM303C_REG_CTRL_REG4_M_OMZ_ULTRAHIGH;
+		rc = i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
+				LSM303C_REG_CTRL_REG4_M,
+				LSM303C_REG_CTRL_REG4_M_OMZ_MASK,
+				om_state << LSM303C_REG_CTRL_REG4_M_OMZ_SHIFT);
+		if(rc < 0) {
+			SYS_LOG_DBG("Failed to enable z magn axis\n");
+			return -EIO;
+		}
+	}
+
 	return 0;
 }
 
@@ -129,6 +159,16 @@ static int lsm303c_magn_set_odr_raw(struct device *dev, u8_t odr)
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
 
+	/* Set the device to continuous conversion mode */
+	u8_t md_state = LSM303C_REG_CTRL_REG3_M_MD_CONTINUOUS;
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
+				LSM303C_REG_CTRL_REG3_M,
+				LSM303C_REG_CTRL_REG3_M_MD_MASK,
+				md_state << LSM303C_REG_CTRL_REG3_M_MD_SHIFT) < 0) {
+		return -EIO;
+	}
+
+	/* Set sample frequency */
 	if (i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
 				LSM303C_REG_CTRL_REG1_M,
 				LSM303C_REG_CTRL_REG1_M_DO_MASK,
@@ -158,17 +198,14 @@ static int lsm303c_sample_fetch_accel(struct device *dev)
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_X_AXIS)
 	data->accel_sample_x = (s16_t)((u16_t)(buf[0]) |
 				((u16_t)(buf[1]) << 8));
-	SYS_LOG_DBG("Fetched accel sample x: %d", data->accel_sample_x);
 #endif
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_Y_AXIS)
 	data->accel_sample_y = (s16_t)((u16_t)(buf[2]) |
 				((u16_t)(buf[3]) << 8));
-	SYS_LOG_DBG("Fetched accel sample y: %d", data->accel_sample_y);
 #endif
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_Z_AXIS)
 	data->accel_sample_z = (s16_t)((u16_t)(buf[4]) |
 				((u16_t)(buf[5]) << 8));
-	SYS_LOG_DBG("Fetched accel sample z: %d", data->accel_sample_z);
 #endif
 
 	return 0;
@@ -178,12 +215,16 @@ static int lsm303c_sample_fetch_magn(struct device *dev)
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
-	u8_t buf[6];
 
-	if (i2c_burst_read(data->i2c_master, config->i2c_m_slave_addr,
-			   LSM303C_REG_OUT_X_L_M, buf, sizeof(buf)) < 0) {
-		SYS_LOG_DBG("failed to read sample");
-		return -EIO;
+	u8_t buf[6];
+	u8_t addr = LSM303C_REG_OUT_X_L_M;
+
+	for(int i = 0; i < 6; i++) {
+		if(i2c_reg_read_byte(data->i2c_master, config->i2c_m_slave_addr,
+				   addr + i, buf + i) < 0) {
+			SYS_LOG_DBG("failed to read sample");
+			return -EIO;
+		}
 	}
 
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
@@ -335,23 +376,23 @@ static int lsm303c_accel_channel_get(enum sensor_channel chan,
 
 #ifdef CONFIG_FLOAT
 static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
-					float numerator)
+					float scale)
 {
 	double dval;
 
-	dval = (double)(raw_val) * numerator / 1000.0 * SENSOR_DEG2RAD_DOUBLE;
+	dval = (double)(raw_val) * scale / 32767.0;
 	val->val1 = (s32_t)dval;
 	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
 }
 #else
 static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
-					s32_t numerator)
+					s32_t scale)
 {
 	long int dval;
 
-	dval = (long int)(raw_val) * numerator / 1000 * SENSOR_DEG2RAD_INT;
+	dval = (long int)(raw_val) * scale / 32767;
 	val->val1 = (s32_t)dval;
-	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
+	val->val2 = 0;
 }
 #endif
 
@@ -359,39 +400,39 @@ static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
 static inline int lsm303c_magn_get_channel(enum sensor_channel chan,
 					   struct sensor_value *val,
 					   struct lsm303c_data *data,
-					   float numerator)
+					   float scale)
 #else
 static inline int lsm303c_magn_get_channel(enum sensor_channel chan,
 					   struct sensor_value *val,
 					   struct lsm303c_data *data,
-					   s32_t numerator)
+					   s32_t scale)
 #endif
 {
 	switch (chan) {
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
 	case SENSOR_CHAN_MAGN_X:
-		lsm303c_magn_convert(val, data->magn_sample_x, numerator);
+		lsm303c_magn_convert(val, data->magn_sample_x, scale);
 		break;
 #endif
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_Y_AXIS)
 	case SENSOR_CHAN_MAGN_Y:
-		lsm303c_magn_convert(val, data->magn_sample_y, numerator);
+		lsm303c_magn_convert(val, data->magn_sample_y, scale);
 		break;
 #endif
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_Z_AXIS)
 	case SENSOR_CHAN_MAGN_Z:
-		lsm303c_magn_convert(val, data->magn_sample_z, numerator);
+		lsm303c_magn_convert(val, data->magn_sample_z, scale);
 		break;
 #endif
 	case SENSOR_CHAN_MAGN_XYZ:
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
-		lsm303c_magn_convert(val, data->magn_sample_x, numerator);
+		lsm303c_magn_convert(val, data->magn_sample_x, scale);
 #endif
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_Y_AXIS)
-		lsm303c_magn_convert(val + 1, data->magn_sample_y, numerator);
+		lsm303c_magn_convert(val + 1, data->magn_sample_y, scale);
 #endif
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_Z_AXIS)
-		lsm303c_magn_convert(val + 2, data->magn_sample_z, numerator);
+		lsm303c_magn_convert(val + 2, data->magn_sample_z, scale);
 #endif
 		break;
 	default:
@@ -467,17 +508,29 @@ static int lsm303c_init_chip(struct device *dev)
 		return -EIO;
 	}
 
-	/* Verify chip identity */
+	/* Verify accelerometer identity */
 	if (i2c_reg_read_byte(data->i2c_master, config->i2c_slave_addr,
 			      LSM303C_REG_WHO_AM_I_A, &chip_id) < 0) {
-		SYS_LOG_DBG("failed reading chip id");
+		SYS_LOG_DBG("failed reading accel id");
 		return -EIO;
 	}
 	if (chip_id != LSM303C_VAL_WHO_AM_I_A) {
-		SYS_LOG_DBG("invalid chip id 0x%x", chip_id);
+		SYS_LOG_DBG("invalid accel id 0x%x", chip_id);
 		return -EIO;
 	}
-	SYS_LOG_DBG("chip id 0x%x", chip_id);
+	SYS_LOG_DBG("Accelerometer ID 0x%x", chip_id);
+
+	/* Verify magnetometer identity */
+	if (i2c_reg_read_byte(data->i2c_master, config->i2c_m_slave_addr,
+			      LSM303C_REG_WHO_AM_I_M, &chip_id) < 0) {
+		SYS_LOG_DBG("failed reading magn id");
+		return -EIO;
+	}
+	if (chip_id != LSM303C_VAL_WHO_AM_I_M) {
+		SYS_LOG_DBG("invalid magn id 0x%x", chip_id);
+		return -EIO;
+	}
+	SYS_LOG_DBG("Magnetometer ID 0x%x", chip_id);
 
 	/* Configure accelerometer axis enables */
 	if (lsm303c_accel_axis_ctrl(dev, LSM303C_ACCEL_ENABLE_X_AXIS,
@@ -501,6 +554,7 @@ static int lsm303c_init_chip(struct device *dev)
 		return -EIO;
 	}
 
+	/* Enable magnetometer axes */
 	if (lsm303c_magn_axis_ctrl(dev, LSM303C_MAGN_ENABLE_X_AXIS,
 				   LSM303C_MAGN_ENABLE_Y_AXIS,
 				   LSM303C_MAGN_ENABLE_Z_AXIS) < 0) {
@@ -508,12 +562,14 @@ static int lsm303c_init_chip(struct device *dev)
 		return -EIO;
 	}
 
+	/* Set magnetometer fullscale */
 	if (lsm303c_magn_set_fs_raw(dev, LSM303C_DEFAULT_MAGN_FULLSCALE)
 				    < 0) {
 		SYS_LOG_DBG("failed to set magnetometer full-scale");
 		return -EIO;
 	}
 
+	/* Set magnetometer sample rate */
 	if (lsm303c_magn_set_odr_raw(dev, LSM303C_DEFAULT_MAGN_SAMPLING_RATE)
 				     < 0) {
 		SYS_LOG_DBG("failed to set magnetometer sampling rate");
@@ -528,15 +584,6 @@ static int lsm303c_init_chip(struct device *dev)
 		SYS_LOG_DBG("failed to set accel BDU");
 		return -EIO;
 	}
-
-	/* Set accelerometer bust read mode */
-	/*if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG4_A,
-				LSM303C_REG_CTRL_REG4_A_IF_ADD_INC,
-				LSM303C_REG_CTRL_REG4_A_IF_ADD_INC) < 0) {
-		SYS_LOG_DBG("failed to set accel burst");
-		return -EIO;
-	}*/
 
 	return 0;
 }
