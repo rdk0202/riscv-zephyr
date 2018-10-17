@@ -8,7 +8,32 @@
 
 int lsm303c_magn_reboot(struct device *dev)
 {
-	/* TODO */
+	struct lsm303c_data *data = dev->driver_data;
+	const struct lsm303c_config *config = dev->config->config_info;
+
+	/* Write the magnetometer reboot bit */
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
+				LSM303C_REG_CTRL_REG2_M,
+				LSM303C_REG_CTRL_REG2_M_REBOOT,
+				LSM303C_REG_CTRL_REG2_M_REBOOT) < 0) {
+		return -EIO;
+	}
+
+	/* Poll the magnetometer reboot bit to detect reboot completes */
+	int rc = 0;
+	u8_t boot_reg;
+	while(1) {
+		rc = i2c_reg_read_byte(data->i2c_master, config->i2c_m_slave_addr,
+				LSM303C_REG_CTRL_REG2_M, &boot_reg);
+		if(rc < 0) {
+			SYS_LOG_DBG("I2C failed to read 0x%02X@0x%02X",
+					LSM303C_REG_CTRL_REG2_M, config->i2c_m_slave_addr);
+		}
+
+		if((boot_reg & LSM303C_REG_CTRL_REG2_M_REBOOT) == 0) {
+			break;
+		}
+	}
 	return 0;
 }
 
