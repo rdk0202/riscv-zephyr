@@ -211,8 +211,6 @@ int i2c_sifive_configure(struct device *dev, u32_t dev_config) {
 	I2C_REG(config, REG_PRESCALE_LOW) = (u8_t) (0xFF & prescale);
 	I2C_REG(config, REG_PRESCALE_HIGH) = (u8_t) (0xFF & (prescale >> 8));
 
-	printk("Using prescale value of %d\n", prescale);
-
 	/* We support I2C Master mode only */
 	if(!(dev_config & I2C_MODE_MASTER))
 		return -EIO;
