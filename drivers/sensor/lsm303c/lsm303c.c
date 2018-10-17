@@ -301,27 +301,24 @@ static int lsm303c_sample_fetch(struct device *dev, enum sensor_channel chan)
 	return 0;
 }
 
-#ifdef CONFIG_FLOAT
-static inline void lsm303c_accel_convert(struct sensor_value *val, int raw_val,
-					 float scale)
+static inline void lsm303c_accel_convert(struct sensor_value *val,
+		s16_t raw_val, s32_t scale)
 {
-	double dval;
+	/* The value is stored as a 16-bit signed integer with extrema of +/- the
+	 * full-scale setting. */
 
-	dval = (double)(raw_val) * scale / 32767.0;
-	val->val1 = (s32_t)dval;
-	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
-}
-#else
-static inline void lsm303c_accel_convert(struct sensor_value *val, int raw_val,
-					 s32_t scale)
-{
-	long int dval;
+	/* Convert the value to a long int to make sure we don't lose precision
+	 * during arithmetic. We'll try to order operations to make the value
+	 * bigger before we make it smaller. */
+	long int dval = (long int) raw_val;
 
-	dval = (long int)(raw_val) * scale / 32767;
-	val->val1 = (s32_t)dval;
-	val->val2 = ((s32_t)(dval * 1000000)) % 1000000;
+	/* Scale such that the maximum value is the full-scale value */
+	val->val1 = (s32_t) (dval * scale / 32767);
+
+	/* Get the fractional part in micro-meters/(s^2) by multiplying by 10e6
+	 * and then taking the modulo 10e6 */
+	val->val2 = (s32_t)((dval * scale * 1000000) / 32767) % 1000000;
 }
-#endif
 
 #ifdef CONFIG_FLOAT
 static inline int lsm303c_accel_get_channel(enum sensor_channel chan,
@@ -391,11 +388,20 @@ static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
 static inline void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
 					s32_t scale)
 {
-	long int dval;
+	/* The value is stored as a 16-bit signed integer with extrema of +/- the
+	 * full-scale setting. */
 
-	dval = (long int)(raw_val) * scale / 32767;
-	val->val1 = (s32_t)dval;
-	val->val2 = 0;
+	/* Convert the value to a long int to make sure we don't lose precision
+	 * during arithmetic. We'll try to order operations to make the value
+	 * bigger before we make it smaller. */
+	long int dval = (long int) raw_val;
+
+	/* Scale such that the maximum value is the full-scale value */
+	val->val1 = (s32_t) (dval * scale / 32767);
+
+	/* Get the fractional part in micro-gauss by multiplying by 10e6
+	 * and then taking the modulo 10e6 */
+	val->val2 = (s32_t)((dval * scale * 1000000) / 32767) % 1000000;
 }
 #endif
 
