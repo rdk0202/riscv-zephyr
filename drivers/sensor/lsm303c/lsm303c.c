@@ -248,16 +248,19 @@ static int lsm303c_sample_fetch_temp(struct device *dev)
 {
 	struct lsm303c_data *data = dev->driver_data;
 	const struct lsm303c_config *config = dev->config->config_info;
-	u8_t buf[2];
 
-	if (i2c_burst_read(data->i2c_master, config->i2c_slave_addr,
-			   LSM303C_REG_OUT_TEMP_L, buf, sizeof(buf)) < 0) {
-		SYS_LOG_DBG("failed to read sample");
-		return -EIO;
+	u8_t buf[2];
+	u8_t addr = LSM303C_REG_TEMP_L_M;
+
+	for(int i = 0; i < 2; i++) {
+		if(i2c_reg_read_byte(data->i2c_master, config->i2c_m_slave_addr,
+				   addr + i, buf + i) < 0) {
+			SYS_LOG_DBG("failed to read sample");
+			return -EIO;
+		}
 	}
 
-	data->temp_sample = (s16_t)((u16_t)(buf[0]) |
-				((u16_t)(buf[1]) << 8));
+	data->temp_sample = (s16_t) ((((u16_t) buf[1]) << 8) | ((u16_t) buf[0]));
 
 	return 0;
 }
@@ -450,13 +453,40 @@ static int lsm303c_magn_channel_get(enum sensor_channel chan,
 					LSM303C_DEFAULT_MAGN_FULLSCALE_FACTOR);
 }
 
+static int lsm303c_temp_enable(struct device *dev, int t_en) {
+	struct lsm303c_data *data = dev->driver_data;
+	const struct lsm303c_config *config = dev->config->config_info;
+
+	u8_t state = 0;
+	if(t_en) {
+		state |= LSM303C_REG_CTRL_REG1_M_TEMP_EN;
+	}
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
+				LSM303C_REG_CTRL_REG1_M,
+				LSM303C_REG_CTRL_REG1_M_TEMP_EN,
+				state) < 0) {
+		return -EIO;
+	}
+
+	return 0;
+}
+
 #if defined(CONFIG_LSM303C_ENABLE_TEMP)
 static void lsm303c_magn_channel_get_temp(struct sensor_value *val,
 					  struct lsm303c_data *data)
 {
-	/* val = temp_sample / 16 + 25 */
-	val->val1 = data->temp_sample / 16 + 25;
-	val->val2 = (data->temp_sample % 16) * (1000000 / 16);
+	/* The raw value is stored in 8ths of a degree C with a zero point at
+	 * -25 degrees C. */
+
+	/* Convert to 32-bit from the 16-bit stored sample */
+	s32_t raw_value = (s32_t) data->temp_sample;
+	
+	/* Get the integer part by ofsetting by 8 * 25 and then dividing by 8 */
+	val->val1 = (raw_value + 200) / 8;
+
+	/* Get the fractional part in micro-degrees C (10e-6) by multiplying by
+	 * 10e6 and then modulo 10e6 */
+	val->val2 = ((1000000 * (raw_value + 200)) / 8) % 1000000;
 }
 #endif
 
@@ -554,6 +584,15 @@ static int lsm303c_init_chip(struct device *dev)
 		return -EIO;
 	}
 
+	/* Set accelerometer block data update */
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
+				LSM303C_REG_CTRL_REG1_A,
+				LSM303C_REG_CTRL_REG1_A_BDU,
+				LSM303C_REG_CTRL_REG1_A_BDU) < 0) {
+		SYS_LOG_DBG("failed to set accel BDU");
+		return -EIO;
+	}
+
 	/* Enable magnetometer axes */
 	if (lsm303c_magn_axis_ctrl(dev, LSM303C_MAGN_ENABLE_X_AXIS,
 				   LSM303C_MAGN_ENABLE_Y_AXIS,
@@ -576,12 +615,18 @@ static int lsm303c_init_chip(struct device *dev)
 		return -EIO;
 	}
 
-	/* Set accelerometer block data update */
-	if (i2c_reg_update_byte(data->i2c_master, config->i2c_slave_addr,
-				LSM303C_REG_CTRL_REG1_A,
-				LSM303C_REG_CTRL_REG1_A_BDU,
-				LSM303C_REG_CTRL_REG1_A_BDU) < 0) {
-		SYS_LOG_DBG("failed to set accel BDU");
+	/* Set magnetometer block data update */
+	if (i2c_reg_update_byte(data->i2c_master, config->i2c_m_slave_addr,
+				LSM303C_REG_CTRL_REG5_M,
+				LSM303C_REG_CTRL_REG5_M_BDU,
+				LSM303C_REG_CTRL_REG5_M_BDU) < 0) {
+		SYS_LOG_DBG("failed to set magn BDU");
+		return -EIO;
+	}
+
+	/* Enable thermometer channel */
+	if (lsm303c_temp_enable(dev, LSM303C_ENABLE_TEMP) < 0) {
+		SYS_LOG_DBG("Failed to set temperature enable");
 		return -EIO;
 	}
 

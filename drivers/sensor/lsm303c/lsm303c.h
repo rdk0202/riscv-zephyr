@@ -182,8 +182,8 @@
 #define LSM303C_REG_OUT_Y_H_M                   0x2B
 #define LSM303C_REG_OUT_Z_L_M                   0x2C
 #define LSM303C_REG_OUT_Z_H_M                   0x2D
-#define LSM303C_REG_TEMP_L						0x2E
-#define LSM303C_REG_TEMP_H						0x2F
+#define LSM303C_REG_TEMP_L_M					0x2E
+#define LSM303C_REG_TEMP_H_M					0x2F
 
 #define LSM303C_REG_INT_CFG_M					0x30
 #define LSM303C_REG_INT_SRC_M					0x31
@@ -232,6 +232,12 @@
 	#define LSM303C_MAGN_ENABLE_Z_AXIS		1
 #else
 	#define LSM303C_MAGN_ENABLE_Z_AXIS		0
+#endif
+
+#if defined(CONFIG_LSM303C_ENABLE_TEMP)
+	#define LSM303C_ENABLE_TEMP				1
+#else
+	#define LSM303C_ENABLE_TEMP				0
 #endif
 
 /* Scaling Values */
@@ -345,27 +351,27 @@ struct lsm303c_data {
 	struct device *i2c_master;
 
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_X_AXIS)
-	int accel_sample_x;
+	s16_t accel_sample_x;
 #endif
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_Y_AXIS)
-	int accel_sample_y;
+	s16_t accel_sample_y;
 #endif
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_Z_AXIS)
-	int accel_sample_z;
+	s16_t accel_sample_z;
 #endif
 
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
-	int magn_sample_x;
+	s16_t magn_sample_x;
 #endif
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_Y_AXIS)
-	int magn_sample_y;
+	s16_t magn_sample_y;
 #endif
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_Z_AXIS)
-	int magn_sample_z;
+	s16_t magn_sample_z;
 #endif
 
 #if defined(CONFIG_LSM303C_ENABLE_TEMP)
-	int temp_sample;
+	s16_t temp_sample;
 #endif
 };
 
