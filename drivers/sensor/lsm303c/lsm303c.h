@@ -1,7 +1,3 @@
-/* sensor_lsm303c.h - header file for LSM303C accelerometer, magnetometer, and
- * temperature sensor driver
- */
-
 /*
  * Copyright (c) 2016 Intel Corporation
  * Copyright (c) 2018 SiFive Inc.
@@ -14,6 +10,7 @@
 
 #include <zephyr/types.h>
 #include <i2c.h>
+#include <sensor.h>
 #include <misc/util.h>
 
 /* Accelerometer Registers */
@@ -374,6 +371,55 @@ struct lsm303c_data {
 	s16_t temp_sample;
 #endif
 };
+
+extern struct lsm303c_data lsm303c_data;
+
+/* Function declarations */
+
+int lsm303c_accel_reboot(struct device *dev);
+int lsm303c_accel_init(struct device *dev);
+
+int lsm303c_accel_axis_ctrl(struct device *dev, int x_en,
+	int y_en, int z_en);
+int lsm303c_accel_set_fs_raw(struct device *dev, u8_t fs);
+int lsm303c_accel_set_odr_raw(struct device *dev, u8_t odr);
+
+int lsm303c_sample_fetch_accel(struct device *dev);
+
+void lsm303c_accel_convert(struct sensor_value *val,
+	s16_t raw_val, s32_t scale);
+int lsm303c_accel_get_channel(enum sensor_channel chan,
+	struct sensor_value *val,
+	struct lsm303c_data *data,
+	s32_t scale);
+int lsm303c_accel_channel_get(enum sensor_channel chan,
+	struct sensor_value *val,
+	struct lsm303c_data *data);
+
+int lsm303c_magn_reboot(struct device *dev);
+int lsm303c_magn_init(struct device *dev);
+
+int lsm303c_magn_axis_ctrl(struct device *dev, int x_en, int y_en,
+	int z_en);
+int lsm303c_temp_enable(struct device *dev, int t_en);
+int lsm303c_magn_set_fs_raw(struct device *dev, u8_t fs);
+int lsm303c_magn_set_odr_raw(struct device *dev, u8_t odr);
+
+int lsm303c_sample_fetch_magn(struct device *dev);
+#if defined(CONFIG_LSM303C_ENABLE_TEMP)
+int lsm303c_sample_fetch_temp(struct device *dev);
+#endif
+void lsm303c_magn_convert(struct sensor_value *val, int raw_val,
+	s32_t scale);
+int lsm303c_magn_get_channel(enum sensor_channel chan,
+	struct sensor_value *val,
+	struct lsm303c_data *data,
+	s32_t scale);
+int lsm303c_magn_channel_get(enum sensor_channel chan,
+	struct sensor_value *val,
+	struct lsm303c_data *data);
+void lsm303c_magn_channel_get_temp(struct sensor_value *val,
+	struct lsm303c_data *data);
 
 /* Logging Configuration */
 
