@@ -247,28 +247,15 @@
 	#define LSM303C_ACCEL_FULLSCALE_8G
 #endif
 
-#if CONFIG_FLOAT
 #if defined(LSM303C_ACCEL_FULLSCALE_2G)
 	#define LSM303C_DEFAULT_ACCEL_FULLSCALE		0
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	(2.0 * SENSOR_G_DOUBLE)
+	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	2
 #elif defined(LSM303C_ACCEL_FULLSCALE_4G)
 	#define LSM303C_DEFAULT_ACCEL_FULLSCALE		2
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	(4.0 * SENSOR_G_DOUBLE)
+	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	4
 #elif defined(LSM303C_ACCEL_FULLSCALE_8G)
 	#define LSM303C_DEFAULT_ACCEL_FULLSCALE		3
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	(8.0 * SENSOR_G_DOUBLE)
-#endif
-#else /* !CONFIG_FLOAT */
-#if defined(LSM303C_ACCEL_FULLSCALE_2G)
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE		0
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	((2 * SENSOR_G) / 1000000)
-#elif defined(LSM3C_ACCEL_FULLSCALE_4G)
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE		2
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	((4 * SENSOR_G) / 1000000)
-#elif defined(LSM3C_ACCEL_FULLSCALE_8G)
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE		3
-	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	((8 * SENSOR_G) / 1000000)
-#endif
+	#define LSM303C_DEFAULT_ACCEL_FULLSCALE_FACTOR	8
 #endif
 
 /* Accelerometer sample rate values */
@@ -387,11 +374,11 @@ int lsm303c_accel_set_odr_raw(struct device *dev, u8_t odr);
 int lsm303c_sample_fetch_accel(struct device *dev);
 
 void lsm303c_accel_convert(struct sensor_value *val,
-	s16_t raw_val, s32_t scale);
+	s16_t raw_val, s64_t scale);
 int lsm303c_accel_get_channel(enum sensor_channel chan,
 	struct sensor_value *val,
 	struct lsm303c_data *data,
-	s32_t scale);
+	s64_t scale);
 int lsm303c_accel_channel_get(enum sensor_channel chan,
 	struct sensor_value *val,
 	struct lsm303c_data *data);
@@ -420,6 +407,8 @@ int lsm303c_magn_channel_get(enum sensor_channel chan,
 	struct lsm303c_data *data);
 void lsm303c_magn_channel_get_temp(struct sensor_value *val,
 	struct lsm303c_data *data);
+
+int lsm303c_selftest(struct device *dev);
 
 /* Logging Configuration */
 

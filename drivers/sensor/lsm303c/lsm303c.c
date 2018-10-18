@@ -142,7 +142,14 @@ int lsm303c_init(struct device *dev)
 		return -EIO;
 	}
 
-	/* TODO: Power-on self test */
+	/* Power-on self test */
+#if	CONFIG_LSM303C_SELFTEST
+	if(lsm303c_selftest(dev) < 0)
+	{
+		SYS_LOG_DBG("Self-test failed");
+		return -EIO;
+	}
+#endif
 
 	return 0;
 }

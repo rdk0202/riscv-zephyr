@@ -231,17 +231,18 @@ void lsm303c_magn_convert(struct sensor_value *val, int raw_val, s32_t scale)
 	/* The value is stored as a 16-bit signed integer with extrema of +/- the
 	 * full-scale setting. */
 
-	/* Convert the value to a long int to make sure we don't lose precision
-	 * during arithmetic. We'll try to order operations to make the value
-	 * bigger before we make it smaller. */
-	long int dval = (long int) raw_val;
+	s64_t value_ugauss = ((s64_t) raw_val) * scale * 1000000LL / 32767LL;
 
-	/* Scale such that the maximum value is the full-scale value */
-	val->val1 = (s32_t) (dval * scale / 32767);
+	/* Divide by 1000000LL to get gauss */
+	val->val1 = (s32_t) (value_ugauss / 1000000LL);
 
-	/* Get the fractional part in micro-gauss by multiplying by 10e6
-	 * and then taking the modulo 10e6 */
-	val->val2 = (s32_t)((dval * scale * 1000000) / 32767) % 1000000;
+	/* Modulo by 1000000LL to get the remainder */
+	val->val2 = (s32_t) (value_ugauss % 1000000LL);
+
+	/* Compute the proper sign of the remainder */
+	if(value_ugauss < 0) {
+		val->val2 *= -1;
+	}
 }
 
 int lsm303c_magn_get_channel(enum sensor_channel chan,

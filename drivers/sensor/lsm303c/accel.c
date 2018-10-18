@@ -174,28 +174,33 @@ int lsm303c_sample_fetch_accel(struct device *dev)
 }
 
 void lsm303c_accel_convert(struct sensor_value *val,
-	s16_t raw_val, s32_t scale)
+	s16_t raw_val, s64_t scale)
 {
 	/* The value is stored as a 16-bit signed integer with extrema of +/- the
 	 * full-scale setting. */
 
-	/* Convert the value to a long int to make sure we don't lose precision
-	 * during arithmetic. We'll try to order operations to make the value
-	 * bigger before we make it smaller. */
-	long int dval = (long int) raw_val;
+	/* Compute the value in micro-gravitys */
+	s64_t value_ug = ((s64_t) raw_val) * scale * 1000000LL / 32767LL;
 
-	/* Scale such that the maximum value is the full-scale value */
-	val->val1 = (s32_t) (dval * scale / 32767);
+	/* Convert from micro-gravitys to micro-meters per square second */
+	s64_t value_umgss = value_ug * SENSOR_G / 1000000LL;
 
-	/* Get the fractional part in micro-meters/(s^2) by multiplying by 10e6
-	 * and then taking the modulo 10e6 */
-	val->val2 = (s32_t)((dval * scale * 1000000) / 32767) % 1000000;
+	/* Divide by 1000000LL to get meters per square second */
+	val->val1 = (s32_t) (value_umgss / 1000000LL);
+
+	/* Modulo by 1000000LL to get the remainder */
+	val->val2 = (s32_t) (value_umgss % 1000000LL);
+
+	/* Compute the proper sign of the remainder */
+	if(value_umgss < 0) {
+		val->val2 *= -1;
+	}
 }
 
 int lsm303c_accel_get_channel(enum sensor_channel chan,
 	struct sensor_value *val,
 	struct lsm303c_data *data,
-	s32_t scale)
+	s64_t scale)
 {
 	switch (chan) {
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_X_AXIS)
