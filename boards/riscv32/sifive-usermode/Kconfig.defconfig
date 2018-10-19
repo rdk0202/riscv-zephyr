@@ -1,0 +1,6 @@
+if BOARD_SIFIVE_USERMODE
+
+config BOARD
+	default "sifive-usermode"
+
+endif

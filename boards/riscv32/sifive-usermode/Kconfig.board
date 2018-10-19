@@ -1,0 +1,4 @@
+config BOARD_SIFIVE_USERMODE
+	bool "SiFive target with user-mode"
+	depends on SOC_RISCV32_SIFIVE_FREEDOM
+	select HAS_DTS
