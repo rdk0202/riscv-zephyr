@@ -20,6 +20,10 @@ config RISCV_HAS_PLIC
 	bool
 	default y
 
+config RISCV_HAS_USER_MODE
+	bool
+	default n
+
 config NUM_IRQS
 	int
 	default 64

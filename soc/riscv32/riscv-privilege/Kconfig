@@ -21,5 +21,13 @@ config RISCV_HAS_PLIC
 	help
 	  Does the SOC provide support for a Platform Level Interrupt Controller
 
+config RISCV_HAS_USER_MODE
+	bool "Does the SOC provide support for user-mode privileged execution"
+	select ARCH_HAS_USERSPACE
+	help
+	  The RISC-V Privileged Archeticture Specification provides optional
+	  support for a reduced-privilege user mode of execution. If this option
+	  is selected by a SoC, then it supports Zephyr's User Mode features
+	  enabled by CONFIG_USERSPACE.
 
 source "soc/riscv32/riscv-privilege/*/Kconfig.soc"
