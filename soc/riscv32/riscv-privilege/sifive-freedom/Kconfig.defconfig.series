@@ -24,6 +24,10 @@ config RISCV_HAS_USER_MODE
 	bool
 	default n
 
+config RISCV_PMP_NUM_ENTRIES
+	int
+	default 0
+
 config NUM_IRQS
 	int
 	default 64

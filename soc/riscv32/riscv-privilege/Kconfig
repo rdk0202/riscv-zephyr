@@ -30,4 +30,12 @@ config RISCV_HAS_USER_MODE
 	  is selected by a SoC, then it supports Zephyr's User Mode features
 	  enabled by CONFIG_USERSPACE.
 
+config RISCV_PMP_NUM_ENTRIES
+	int "Number of PMP entries provided by the SOC"
+	depends on RISCV_HAS_USER_MODE
+	help
+	  The RISC-V Physical Memory Protection unit provides an implementation-
+	  defined number of entries not greater than 16. This option must be set
+	  by any SOC which wishes to make use of the PMP.
+
 source "soc/riscv32/riscv-privilege/*/Kconfig.soc"
