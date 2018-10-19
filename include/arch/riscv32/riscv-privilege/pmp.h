@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2018 SiFive Inc.
+ *
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 #ifndef ZEPHYR_INCLUDE_ARCH_RISCV32_RISCV_PRIVILEGE_PMP_H_
@@ -29,10 +31,7 @@ extern "C" {
 /* PMP region lock */
 #define RISCV_PRIV_PMPCFG_L         BIT(7)
 
-typedef struct {
-        u32_t pmpaddr;
-        u8_t pmpcfg;
-} k_mem_partition_attr_t;
+typedef u8_t k_mem_partition_attr_t;
 
 #endif /* _ASMLANGUAGE */
 

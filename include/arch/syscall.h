@@ -15,6 +15,8 @@
 #include <arch/arm/syscall.h>
 #elif defined(CONFIG_ARC)
 #include <arch/arc/syscall.h>
+#elif defined(CONFIG_RISCV32)
+#include <arch/riscv32/syscall.h>
 #endif
 
 #endif /* ZEPHYR_INCLUDE_ARCH_SYSCALL_H_ */
