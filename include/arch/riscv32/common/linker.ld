@@ -84,6 +84,10 @@ SECTIONS
 		*(".text.*")
 		*(.gnu.linkonce.t.*)
 		*(.eh_frame)
+
+#include <linker/priv_stacks-text.ld>
+#include <linker/kobject-text.ld>
+
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
     _image_text_end = .;
