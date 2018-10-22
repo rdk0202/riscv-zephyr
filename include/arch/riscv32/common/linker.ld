@@ -197,6 +197,7 @@ SECTIONS
 		 */
 		 . = ALIGN(4);
 		 __bss_start = .;
+		 __kernel_ram_start = .;
 		 *(.sbss)
 		 *(".sbss.*")
 		 *(.bss)
@@ -221,6 +222,9 @@ SECTIONS
 
      _image_ram_end = .;
      _end = .; /* end of image */
+
+    __kernel_ram_end = CONFIG_RISCV_RAM_BASE_ADDR + RISCV_RAM_SIZE;
+    __kernel_ram_size = __kernel_ram_end - __kernel_ram_start;
 
 #ifdef CONFIG_GEN_ISR_TABLES
 #include <linker/intlist.ld>
