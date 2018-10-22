@@ -8,6 +8,7 @@
 #include <linker/sections.h>
 #include <kernel_structs.h>
 #include <offsets_short.h>
+#include <syscall_list.h>
 
 /* imports */
 GDATA(_sw_isr_table)
@@ -135,7 +136,7 @@ SECTION_FUNC(exception.entry, __irq_wrapper)
 	 * If mcause == SOC_MCAUSE_ECALL_EXP, handle system call,
 	 * otherwise handle fault
 	 */
-	beq t0, t1, is_syscall
+	beq t0, t1, ecall_exp
 
 	/*
 	 * Call _Fault to handle exception.
@@ -148,10 +149,9 @@ SECTION_FUNC(exception.entry, __irq_wrapper)
 	la ra, no_reschedule
 	tail _Fault
 
-is_syscall:
+ecall_exp:
 	/*
-	 * A syscall is the result of an ecall instruction, in which case the
-	 * MEPC will contain the address of the ecall instruction.
+	 * An ecall instruction saves the address of the ecall to MEPC.
 	 * Increment saved MEPC by 4 to prevent triggering the same ecall
 	 * again upon exiting the ISR.
 	 *
@@ -162,23 +162,78 @@ is_syscall:
 	addi t0, t0, 4
 	sw t0, __NANO_ESF_mepc_OFFSET(sp)
 
-#ifdef CONFIG_IRQ_OFFLOAD
-	/*
-	 * Determine if the system call is the result of an IRQ offloading.
-	 * Done by checking if _offload_routine is not pointing to NULL.
-	 * If NULL, jump to reschedule to perform a context-switch, otherwise,
-	 * jump to is_interrupt to handle the IRQ offload.
-	 */
-	la t0, _offload_routine
-	lw t1, 0x00(t0)
-	bnez t1, is_interrupt
-#endif
+	/* Load the syscall number from a1 */
+	lw t0, __NANO_ESF_a1_OFFSET(sp)
+
+	/* If the syscall number is K_SYSCALL_LIMIT, then we don't have a Zephyr
+	 * syscall, we have a reschedule request from _swap */
+	li t1, K_SYSCALL_LIMIT
+	bne t0, t1, is_syscall
+
+ecall_reschedule:
+	/* Discard irq_wrapper saved stack frame for the one we allocated in
+	 * _swap */
+	addi sp, sp, __NANO_ESF_SIZEOF
+	/* Reschedule */
+	j reschedule
+
+is_syscall:
+	/* Load the syscall argument count from a0 */
+	lw t0, __NANO_ESF_a0_OFFSET(sp)
+
+	/* Jump to the right place to load the arguments */
+	li t1, 0
+	beq t0, t1, syscall_0
+	li t1, 1
+	beq t0, t1, syscall_1
+	li t1, 2
+	beq t0, t1, syscall_2
+	li t1, 3
+	beq t0, t1, syscall_3
+	li t1, 4
+	beq t0, t1, syscall_4
+	li t1, 5
+	beq t0, t1, syscall_5
+	li t1, 6
+	beq t0, t1, syscall_6
+
+	/* Load the arguments into the a_ registers. Fall through to lower-count
+	 * syscall argument loaders like a case statement in C */
+syscall_6:
+	lw a5, __NANO_ESF_a7_OFFSET(sp)
+syscall_5:
+	lw a4, __NANO_ESF_a6_OFFSET(sp)
+syscall_4:
+	lw a3, __NANO_ESF_a5_OFFSET(sp)
+syscall_3:
+	lw a2, __NANO_ESF_a4_OFFSET(sp)
+syscall_2:
+	lw a1, __NANO_ESF_a3_OFFSET(sp)
+syscall_1:
+	lw a0, __NANO_ESF_a2_OFFSET(sp)
+syscall_0:
+
+	/* Load the syscall number from a1 */
+	lw t0, __NANO_ESF_a1_OFFSET(sp)
+
+	/* Load the syscall table */
+	la t1, _k_syscall_table
+
+	/* Multiply the syscall number by 4 to get the offset */
+	slli t0, t0, 2
+
+	/* Add the offset to the table base */
+	add t1, t1, t0
+
+	/* Load and call the syscall function */
+	lw t1, 0x00(t1)
+	jalr ra, t1
 
 	/*
 	 * Go to reschedule to handle context-switch
 	 */
 	j reschedule
-
+	
 is_interrupt:
 	/*
 	 * Save current thread stack pointer and switch

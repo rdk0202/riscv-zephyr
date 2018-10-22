@@ -7,6 +7,7 @@
 #include <irq.h>
 #include <kernel_structs.h>
 #include <offsets_short.h>
+#include <syscall_list.h>
 
 /* exports */
 GTEXT(__swap)
@@ -21,9 +22,9 @@ GTEXT(_thread_entry_wrapper)
  * key is stored in a0 register
  */
 SECTION_FUNC(exception.other, __swap)
-
 	/* Make a system call to perform context switch */
-#ifdef CONFIG_EXECUTION_BENCHMARKING
+
+	/* For the reschedule ecall, we'll save our stack frame here first */
 	addi sp, sp, -__NANO_ESF_SIZEOF
 
 	sw ra, __NANO_ESF_ra_OFFSET(sp)
@@ -45,30 +46,21 @@ SECTION_FUNC(exception.other, __swap)
 	sw a6, __NANO_ESF_a6_OFFSET(sp)
 	sw a7, __NANO_ESF_a7_OFFSET(sp)
 
+#ifdef CONFIG_EXECUTION_BENCHMARKING
 	call read_timer_start_of_swap
-
-	lw ra, __NANO_ESF_ra_OFFSET(sp)
-	lw gp, __NANO_ESF_gp_OFFSET(sp)
-	lw tp, __NANO_ESF_tp_OFFSET(sp)
-	lw t0, __NANO_ESF_t0_OFFSET(sp)
-	lw t1, __NANO_ESF_t1_OFFSET(sp)
-	lw t2, __NANO_ESF_t2_OFFSET(sp)
-	lw t3, __NANO_ESF_t3_OFFSET(sp)
-	lw t4, __NANO_ESF_t4_OFFSET(sp)
-	lw t5, __NANO_ESF_t5_OFFSET(sp)
-	lw t6, __NANO_ESF_t6_OFFSET(sp)
-	lw a0, __NANO_ESF_a0_OFFSET(sp)
-	lw a1, __NANO_ESF_a1_OFFSET(sp)
-	lw a2, __NANO_ESF_a2_OFFSET(sp)
-	lw a3, __NANO_ESF_a3_OFFSET(sp)
-	lw a4, __NANO_ESF_a4_OFFSET(sp)
-	lw a5, __NANO_ESF_a5_OFFSET(sp)
-	lw a6, __NANO_ESF_a6_OFFSET(sp)
-	lw a7, __NANO_ESF_a7_OFFSET(sp)
 
 	/* Release stack space */
 	addi sp, sp, __NANO_ESF_SIZEOF
 #endif
+	/* Tell the syscall handler that this isn't a syscall, it's a
+	 * reschedule request */
+
+	/* Syscall argument count in a0 */
+	li a0, 0
+	/* Syscall number in a1 */
+	li a1, K_SYSCALL_LIMIT
+
+	/* Perform the system call */
 	ecall
 
 	/*
