@@ -100,6 +100,10 @@ SECTIONS
 		 *(.rodata)
 		 *(".rodata.*")
 		 *(.gnu.linkonce.r.*)
+
+#include <linker/priv_stacks-rom.ld>
+#include <linker/kobject-rom.ld>
+
 	} GROUP_LINK_IN(ROMABLE_REGION)
 
     _image_rom_end = .;
@@ -109,31 +113,13 @@ SECTIONS
 
     GROUP_START(RAMABLE_REGION)
 
-    SECTION_DATA_PROLOGUE(_DATA_SECTION_NAME,,)
-	{
-		 . = ALIGN(4);
-		 _image_ram_start = .;
-		 __data_ram_start = .;
-
-		 *(.data)
-		 *(".data.*")
-
-		 *(.sdata .sdata.* .gnu.linkonce.s.*)
-		 *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
-
-	}  GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
-
-#include <linker/common-ram.ld>
-
-    __data_ram_end = .;
-
 #if defined(CONFIG_APP_SHARED_MEM)
 
 #if defined(CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT)
 #define APP_SHARED_ALIGN . = ALIGN(4);
-		#include <app_smem.ld>
+#include <app_smem.ld>
 #else
-	SECTION_PROLOGUE(_APP_SMEM_SECTION_NAME, (OPTIONAL),)
+    SECTION_PROLOGUE(_APP_SMEM_SECTION_NAME, (OPTIONAL),)
 	{
 		. = ALIGN(4);
 		_image_ram_start = .;
@@ -144,14 +130,13 @@ SECTIONS
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
 #endif  /* CONFIG_MPU_REQUIRES_POWER_OF_TWO_ALIGNMENT */
 
-	_app_smem_size = _app_smem_end - _app_smem_start;
-	_app_smem_rom_start = LOADADDR(_APP_SMEM_SECTION_NAME);
+    _app_smem_size = _app_smem_end - _app_smem_start;
+    _app_smem_rom_start = LOADADDR(_APP_SMEM_SECTION_NAME);
 #endif  /* CONFIG_APP_SHARED_MEM */
 
 #ifdef CONFIG_APPLICATION_MEMORY
-	SECTION_DATA_PROLOGUE(_APP_DATA_SECTION_NAME, (OPTIONAL),)
+    SECTION_DATA_PROLOGUE(_APP_DATA_SECTION_NAME, (OPTIONAL),)
 	{
-
 		__app_ram_start = .;
 		__app_data_ram_start = .;
 		APP_INPUT_SECTION(.data)
@@ -159,9 +144,9 @@ SECTIONS
 		__app_data_ram_end = .;
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
 
-	__app_data_rom_start = LOADADDR(_APP_DATA_SECTION_NAME);
+    __app_data_rom_start = LOADADDR(_APP_DATA_SECTION_NAME);
 
-	SECTION_PROLOGUE(_APP_BSS_SECTION_NAME, (NOLOAD OPTIONAL),)
+    SECTION_PROLOGUE(_APP_BSS_SECTION_NAME, (NOLOAD OPTIONAL),)
 	{
 		__app_bss_start = .;
 		APP_INPUT_SECTION(.bss)
@@ -170,23 +155,24 @@ SECTIONS
 		__app_bss_end = .;
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
 
-	__app_bss_num_words = (__app_bss_end - __app_bss_start) >> 2;
+    __app_bss_num_words = (__app_bss_end - __app_bss_start) >> 2;
 
-	SECTION_PROLOGUE(_APP_NOINIT_SECTION_NAME, (NOLOAD OPTIONAL),)
+    SECTION_PROLOGUE(_APP_NOINIT_SECTION_NAME, (NOLOAD OPTIONAL),)
 	{
 		APP_INPUT_SECTION(.noinit)
 		APP_INPUT_SECTION(".noinit.*")
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
 
-	__app_last_address_used = .;
+    __app_last_address_used = .;
 
-	/* Pad out application ram area to make MPU friendly */
-	SECTION_PROLOGUE(app_pad, (NOLOAD OPTIONAL),)
+    /* Pad out application ram area to make MPU friendly */
+    SECTION_PROLOGUE(app_pad, (NOLOAD OPTIONAL),)
 	{
 		. = ALIGN(32);
 	} GROUP_DATA_LINK_IN(RAMABLE_REGION, RAMABLE_REGION)
-	__app_ram_end = .;
-	__app_ram_size = __app_ram_end - __app_ram_start;
+
+    __app_ram_end = .;
+    __app_ram_size = __app_ram_end - __app_ram_start;
 #endif /* CONFIG_APPLICATION_MEMORY */
 
     SECTION_DATA_PROLOGUE(_BSS_SECTION_NAME,(NOLOAD),)
@@ -220,6 +206,24 @@ SECTIONS
 		 *(".noinit.*")
 	} GROUP_LINK_IN(RAMABLE_REGION)
 
+    SECTION_DATA_PROLOGUE(_DATA_SECTION_NAME,,)
+	{
+		 . = ALIGN(4);
+		 __data_ram_start = .;
+
+		 *(.data)
+		 *(".data.*")
+
+		 *(.sdata .sdata.* .gnu.linkonce.s.*)
+		 *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
+
+	}  GROUP_DATA_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
+
+#include <linker/common-ram.ld>
+#include <linker/priv_stacks.ld>
+#include <linker/kobject.ld>
+
+     __data_ram_end = .;
      _image_ram_end = .;
      _end = .; /* end of image */
 
