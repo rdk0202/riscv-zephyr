@@ -24,6 +24,7 @@ config RISCV_HAS_PLIC
 config RISCV_HAS_USER_MODE
 	bool "Does the SOC provide support for user-mode privileged execution"
 	select ARCH_HAS_USERSPACE
+	select CPU_HAS_MPU
 	help
 	  The RISC-V Privileged Archeticture Specification provides optional
 	  support for a reduced-privilege user mode of execution. If this option
