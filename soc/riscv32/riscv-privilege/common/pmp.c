@@ -71,3 +71,9 @@ void _arch_mem_domain_destroy(struct k_mem_domain *domain)
 	/* TODO */
 }
 
+int _arch_buffer_validate(void *addr, size_t size, int write)
+{
+	/* TODO */
+	return 1;
+}
+

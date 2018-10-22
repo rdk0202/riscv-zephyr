@@ -168,6 +168,12 @@ hang_system:
 	CODE_UNREACHABLE;
 }
 
+FUNC_NORETURN __weak void _arch_syscall_oops(void *ssf)
+{
+	/* TODO */
+	while(1);
+}
+
 
 #ifdef CONFIG_PRINTK
 static char *cause_str(u32_t cause)
