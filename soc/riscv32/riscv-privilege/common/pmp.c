@@ -5,6 +5,7 @@
  */
 
 #include <kernel.h>
+#include <kernel_structs.h>
 #include <soc.h>
 #include <arch/riscv32/riscv-privilege/pmp.h>
 
@@ -30,6 +31,7 @@ int _arch_mem_domain_max_partitions_get(void)
 
 void set_pmpcfg(u8_t region, u32_t attr)
 {
+#if CONFIG_RISCV_PMP_NUM_ENTRIES > 0
 	u8_t cfg_num = region / 4;
 	u8_t subcfg_num = region % 4;
 
@@ -50,7 +52,6 @@ void set_pmpcfg(u8_t region, u32_t attr)
 	u32_t pmpcfg;
 	switch(cfg_num)
 	{
-#if CONFIG_RISCV_PMP_NUM_ENTRIES > 0
 	case 0:
 		__asm__ volatile("csrr %[oldcfg], pmpcfg0"
 				: [oldcfg] "=r" (pmpcfg));
@@ -58,7 +59,6 @@ void set_pmpcfg(u8_t region, u32_t attr)
 		pmpcfg |= cfg_value;
 		__asm__ volatile("csrw pmpcfg0, %[cfg]"
 				:: [cfg] "r" (pmpcfg));
-#endif
 #if CONFIG_RISCV_PMP_NUM_ENTRIES >= 5
 	case 1:
 		__asm__ volatile("csrr %[oldcfg], pmpcfg1"
@@ -89,27 +89,26 @@ void set_pmpcfg(u8_t region, u32_t attr)
 	default:
 		return;
 	}
+#endif /* CONFIG_RISCV_PMP_NUM_ENTRIES > 0 */
 }
 
 void clr_pmpcfg(u8_t region)
 {
+#if CONFIG_RISCV_PMP_NUM_ENTRIES > 0
 	u8_t cfg_num = region / 4;
 	u8_t subcfg_num = region % 4;
 
 	u32_t cfg_mask = 0xFF << (sizeof(u8_t) * subcfg_num);
 
-	/* Write the config to the proper mpmcfg0 */
 	u32_t pmpcfg;
 	switch(cfg_num)
 	{
-#if CONFIG_RISCV_PMP_NUM_ENTRIES > 0
 	case 0:
 		__asm__ volatile("csrr %[oldcfg], pmpcfg0"
 				: [oldcfg] "=r" (pmpcfg));
 		pmpcfg &= ~(cfg_mask);
 		__asm__ volatile("csrw pmpcfg0, %[cfg]"
 				:: [cfg] "r" (pmpcfg));
-#endif
 #if CONFIG_RISCV_PMP_NUM_ENTRIES >= 5
 	case 1:
 		__asm__ volatile("csrr %[oldcfg], pmpcfg1"
@@ -137,6 +136,7 @@ void clr_pmpcfg(u8_t region)
 	default:
 		return;
 	}
+#endif /* CONFIG_RISCV_PMP_NUM_ENTRIES > 0 */
 }
 
 void set_pmpaddr(u8_t region, u32_t addr)
@@ -305,7 +305,25 @@ void _arch_mem_domain_destroy(struct k_mem_domain *domain)
 
 int _arch_buffer_validate(void *addr, size_t size, int write)
 {
-	/* TODO */
+	u32_t buf_addr = (u32_t) addr;
+	struct k_mem_domain *domain = _current->mem_domain_info.mem_domain;
+
+	for(int i = 0; i < domain->num_partitions; i++)
+	{
+		struct k_mem_partition part = domain->partitions[i];
+
+		u32_t end = part.start + part.size;
+
+		/* Check bounds */
+		if(buf_addr < part.start || (buf_addr + size) > end)
+			continue;
+
+		/* Check write protection */
+		/* TODO */
+
+		return 0;
+	}
+
 	return 0;
 }
 
