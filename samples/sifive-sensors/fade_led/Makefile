@@ -2,7 +2,7 @@
 BUILD_DIR=build
 ELF_OUT=$(BUILD_DIR)/zephyr/zephyr.elf
 
-ZEPHYR_BOARD=hifive1
+ZEPHYR_BOARD=sifive-sensors
 
 QEMU=qemu-system-riscv32
 QEMU_MACHINE=sifive_e
