@@ -1,0 +1,6 @@
+if BOARD_SIFIVE_SENSORS
+
+config BOARD
+	default "sifive-sensors"
+
+endif

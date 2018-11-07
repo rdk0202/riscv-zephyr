@@ -1,0 +1,49 @@
+/dts-v1/;
+
+#include <riscv32-fe310.dtsi>
+
+/ {
+	model = "SiFive Sensors"
+	compatible = "sifive,sensors";
+	chosen {
+		zephyr,console = &uart0;
+	};
+};
+
+&gpio0 {
+	status = "ok";
+};
+
+&uart0 {
+	status = "ok";
+	current-speed = <115200>;
+};
+
+&spi0 {
+	status = "ok";
+};
+
+&spi1 {
+	status = "ok";
+};
+
+&spi2 {
+	status = "ok";
+};
+
+&pwm0 {
+	status = "ok";
+};
+
+&pwm1 {
+	status = "ok";
+};
+
+&pwm2 {
+	status = "ok";
+};
+
+&i2c0 {
+	status = "ok";
+};
+
