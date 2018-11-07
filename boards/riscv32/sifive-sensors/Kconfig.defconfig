@@ -3,4 +3,7 @@ if BOARD_SIFIVE_SENSORS
 config BOARD
 	default "sifive-sensors"
 
+config RISCV_ROM_BASE_ADDR
+	default 0x20010000
+
 endif
