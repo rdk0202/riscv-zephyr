@@ -3,7 +3,7 @@
 #include <riscv32-fe310.dtsi>
 
 / {
-	model = "SiFive Sensors"
+	model = "SiFive Sensors";
 	compatible = "sifive,sensors";
 	chosen {
 		zephyr,console = &uart0;
