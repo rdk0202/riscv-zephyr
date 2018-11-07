@@ -27,6 +27,10 @@
 	status = "ok";
 };
 
+&spi2 {
+	status = "ok";
+};
+
 &pwm0 {
 	status = "ok";
 };
