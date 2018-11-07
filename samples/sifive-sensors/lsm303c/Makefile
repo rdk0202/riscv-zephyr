@@ -1,16 +1,23 @@
 
 BUILD_DIR=build
 ELF_OUT=$(BUILD_DIR)/zephyr/zephyr.elf
+HEX_OUT=$(BUILD_DIR)/zephyr/zephyr.hex
 
 ZEPHYR_BOARD=sifive-sensors
 
 QEMU=qemu-system-riscv32
 QEMU_MACHINE=sifive_e
 
+OBJCOPY=riscv64-sifive-elf-objcopy
+
 GDB=riscv64-sifive-elf-gdb
 GDB_PORT=31337
 
-all: clean elf
+all: clean elf hex
+
+hex: $(HEX_OUT)
+$(HEX_OUT): $(ELF_OUT)
+	$(OBJCOPY) -O ihex $(ELF_OUT) $(HEX_OUT)
 
 elf: $(ELF_OUT)
 $(ELF_OUT): $(BUILD_DIR)
