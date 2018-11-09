@@ -7,53 +7,73 @@
 #include <zephyr.h>
 #include <misc/printk.h>
 #include <device.h>
+#include <gpio.h>
 #include <pwm.h>
 #include <board.h>
 
-#define PWM_DRIVER	"pwm_1"
-#define PERIOD (USEC_PER_SEC / 200)
-#define PWM_CHANNEL 3
+#define PERIOD 1000
 
-#define DOWN 0
 #define UP 1
+#define DOWN 0
 
 void main(void)
 {
-	struct device *pwm_dev;
-
-	int channels[3] = {1, 2, 3};
-	int duty[3] = {PERIOD, PERIOD/2, 0};
-	u8_t dir[3] = {DOWN, DOWN, UP};
-
-	printk("PWM demo app-blink LED\n");
-
-	pwm_dev = device_get_binding(PWM_DRIVER);
-	if (!pwm_dev) {
-		printk("Cannot find %s!\n", PWM_DRIVER);
+	struct device *gpio = device_get_binding(CONFIG_GPIO_SIFIVE_GPIO_NAME);
+	if(!gpio) {
+		printk("Failed to get GPIO dev\n");
 		return;
 	}
 
-	while (1) {
-		for(int i = 0; i < 3; i++) {
-			if (pwm_pin_set_usec(pwm_dev, channels[i], PERIOD, (u32_t) duty[i])) {
-				printk("pwm pin set fails\n");
-				return;
+	gpio_pin_configure(gpio, 16, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, 17, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, 18, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, 19, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, 23, GPIO_DIR_OUT);
+
+	gpio_pin_write(gpio, 16, 1);
+	gpio_pin_write(gpio, 17, 1);
+	gpio_pin_write(gpio, 18, 1);
+	gpio_pin_write(gpio, 19, 1);
+	gpio_pin_write(gpio, 23, 1);
+
+	struct device *pwm0 = device_get_binding("pwm_0");
+	if(!pwm0) {
+		printk("Failed to get PWM 0 dev\n");
+		return;
+	}
+	struct device *pwm1 = device_get_binding("pwm_1");
+	if(!pwm1) {
+		printk("Failed to get PWM 1 dev\n");
+		return;
+	}
+
+	u32_t duty = PERIOD / 2;
+	u32_t dir = UP;
+
+	while(1) {
+		if(pwm_pin_set_usec(pwm0, 1, PERIOD, duty) < 0)
+			printk("Failed to set PWM0_1\n");
+		if(pwm_pin_set_usec(pwm0, 2, PERIOD, duty) < 0)
+			printk("Failed to set PWM0_2\n");
+		if(pwm_pin_set_usec(pwm1, 1, PERIOD, duty) < 0)
+			printk("Failed to set PWM1_1\n");
+		if(pwm_pin_set_usec(pwm1, 2, PERIOD, duty) < 0)
+			printk("Failed to set PWM1_2\n");
+		if(pwm_pin_set_usec(pwm1, 3, PERIOD, duty) < 0)
+			printk("Failed to set PWM1_3\n");
+
+		if(dir == UP) {
+			duty += PERIOD / 10;
+			if(duty >= PERIOD) {
+				duty = PERIOD;
+				dir = DOWN;
 			}
-
-			if (dir[i] == DOWN) {
-				duty[i] -= PERIOD / 10;
-				if(duty[i] <= 0) {
-					duty[i] = 0;
-					dir[i] = UP;
-				}
-
+		} else {
+			if(duty <= PERIOD / 10) {
+				duty = 0;
+				dir = UP;
 			} else {
-				duty[i] += PERIOD / 10;
-
-				if(duty[i] >= PERIOD) {
-					duty[i] = PERIOD;
-					dir[i] = DOWN;
-				}
+				duty -= PERIOD / 10;
 			}
 		}
 

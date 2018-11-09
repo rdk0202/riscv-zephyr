@@ -24,7 +24,7 @@ config PWM_SIFIVE_INIT_PRIORITY
 
 config PWM_SIFIVE_CMPWIDTH
 	int "Compare width"
-	default 16
+	default 8
 	help
 		PWM Peripheral compare width
 

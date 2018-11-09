@@ -15,7 +15,7 @@ static int sifive_sensors_pinmux_init(struct device *dev)
 	struct device *p = device_get_binding(CONFIG_PINMUX_SIFIVE_0_NAME);
 
 	/* UART0 RX */
-	pinmux_pin_set(p, 16, SIFIVE_PINMUX_IOF0);
+	//pinmux_pin_set(p, 16, SIFIVE_PINMUX_IOF0);
 
 	/* UART0 TX */
 	pinmux_pin_set(p, 17, SIFIVE_PINMUX_IOF0);
@@ -30,11 +30,11 @@ static int sifive_sensors_pinmux_init(struct device *dev)
 	pinmux_pin_set(p, 12, SIFIVE_PINMUX_IOF0); /* SDA */
 	pinmux_pin_set(p, 13, SIFIVE_PINMUX_IOF0); /* SCL */
 
-	/* PWM 1 */
-	pinmux_pin_set(p, 19, SIFIVE_PINMUX_IOF1); /* PWM1_0 */
-	pinmux_pin_set(p, 20, SIFIVE_PINMUX_IOF1); /* PWM1_1 */
-	pinmux_pin_set(p, 21, SIFIVE_PINMUX_IOF1); /* PWM1_2 */
-	pinmux_pin_set(p, 22, SIFIVE_PINMUX_IOF1); /* PWM1_3 */
+	pinmux_pin_set(p, 1, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, 2, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, 20, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, 21, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, 22, SIFIVE_PINMUX_IOF1);
 
 	return 0;
 }

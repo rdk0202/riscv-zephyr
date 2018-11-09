@@ -16,18 +16,18 @@
 #define _REG32(_base, _offset)	(*(volatile u32_t *) ((_base) + (_offset)))	
 #define PWM_REG(_config, _offset)	_REG32((_config)->base, _offset)
 
-#define BIT_SET(_reg, _offset)	((_reg) |= (1 << (_offset)))
-#define BIT_CLR(_reg, _offset)	((_reg) &= ~(1 << (_offset)))
+#define BIT_SET(_reg, _offset)	_reg |= (1 << (_offset))
+#define BIT_CLR(_reg, _offset)	_reg &= ~(1 << (_offset))
+
+/* Number of PWM Channels */
+#define SF_NUMCHANNELS	4
 
 /* Register Offsets */
 #define REG_PWMCFG		0x00
 #define REG_PWMCOUNT	0x08
 #define REG_PWMS		0x10
 #define REG_PWMCMP0		0x20
-#define REG_PWMCMP(_channel)	(REG_PWMCMP0 + ((_channel) * 0x4))
-
-/* Number of PWM Channels */
-#define SF_NUMCHANNELS	4
+#define REG_PWMCMP(_channel)	(REG_PWMCMP0 + ((_channel) * 0x04))
 
 /* pwmcfg Bit Offsets */
 #define SF_PWMSTICKY	8
@@ -161,9 +161,13 @@ int pwm_sifive_pin_set(struct device *dev,
 	/* Set the duty cycle by setting pwmcmpX */
 	PWM_REG(config, REG_PWMCMP(pwm)) = (pulse_cycles >> pwmscale);
 
-	SYS_LOG_DBG("channel: %d, pwmscale: %d, pwmcmp0: %d, pwmcmp%d: %d",
-			pwm, pwmscale, (period_cycles >> pwmscale),
-			pwm, (pulse_cycles >> pwmscale));
+	/*SYS_LOG_DBG("pwm: %d", pwm);
+	SYS_LOG_DBG("pwmscale requested %d actual %d", pwmscale, 
+			(PWM_REG(config, REG_PWMCFG) & SF_PWMSCALEMASK));
+	SYS_LOG_DBG("pwmcmp0 requested %d actual %d", (period_cycles >> pwmscale),
+			PWM_REG(config, REG_PWMCMP0));
+	SYS_LOG_DBG("pwmcmp requested %d actual %d", (pulse_cycles >> pwmscale),
+			PWM_REG(config, REG_PWMCMP(pwm)));*/
 
 	return 0;
 }
