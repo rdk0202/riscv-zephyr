@@ -27,13 +27,13 @@ void main(void)
 	gpio_pin_configure(gpio, 16, GPIO_DIR_OUT);
 	gpio_pin_configure(gpio, 17, GPIO_DIR_OUT);
 	gpio_pin_configure(gpio, 18, GPIO_DIR_OUT);
-	gpio_pin_configure(gpio, 19, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, 20, GPIO_DIR_OUT);
 	gpio_pin_configure(gpio, 23, GPIO_DIR_OUT);
 
 	gpio_pin_write(gpio, 16, 1);
 	gpio_pin_write(gpio, 17, 1);
 	gpio_pin_write(gpio, 18, 1);
-	gpio_pin_write(gpio, 19, 1);
+	gpio_pin_write(gpio, 20, 1);
 	gpio_pin_write(gpio, 23, 1);
 
 	struct device *pwm0 = device_get_binding("pwm_0");

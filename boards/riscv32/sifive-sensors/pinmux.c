@@ -32,7 +32,7 @@ static int sifive_sensors_pinmux_init(struct device *dev)
 
 	pinmux_pin_set(p, 1, SIFIVE_PINMUX_IOF1);
 	pinmux_pin_set(p, 2, SIFIVE_PINMUX_IOF1);
-	pinmux_pin_set(p, 20, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, 19, SIFIVE_PINMUX_IOF1);
 	pinmux_pin_set(p, 21, SIFIVE_PINMUX_IOF1);
 	pinmux_pin_set(p, 22, SIFIVE_PINMUX_IOF1);
 
