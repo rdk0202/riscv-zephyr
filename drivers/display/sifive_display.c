@@ -19,9 +19,9 @@
 int sifive_display_setcol(u32_t col, u32_t duty) {
 	static struct device *pwm[2];
 	if(!pwm[0])
-		pwm[0] = device_get_binding("pwm_0");
+		pwm[0] = device_get_binding(CONFIG_SIFIVE_PWM_0_LABEL);
 	if(!pwm[1])
-		pwm[1] = device_get_binding("pwm_1");
+		pwm[1] = device_get_binding(CONFIG_SIFIVE_PWM_1_LABEL);
 
 	int rc = 0;
 
