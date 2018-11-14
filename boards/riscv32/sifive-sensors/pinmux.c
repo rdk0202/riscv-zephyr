@@ -18,7 +18,7 @@ static int sifive_sensors_pinmux_init(struct device *dev)
 	//pinmux_pin_set(p, 16, SIFIVE_PINMUX_IOF0);
 
 	/* UART0 TX */
-	pinmux_pin_set(p, 17, SIFIVE_PINMUX_IOF0);
+	//pinmux_pin_set(p, 17, SIFIVE_PINMUX_IOF0);
 
 	/* SPI1 */
 	pinmux_pin_set(p, 3, SIFIVE_PINMUX_IOF0); /* MOSI */

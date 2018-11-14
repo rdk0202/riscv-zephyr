@@ -1,0 +1,14 @@
+# Kconfig - SiFive display driver
+
+#
+# Copyright (c) 2018 SiFive Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config SIFIVE_DISPLAY
+	bool "SiFive 5x5 LED Display support"
+	depends on GPIO
+	help
+		Enables the 5x5 LED array
+
