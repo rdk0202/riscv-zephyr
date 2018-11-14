@@ -21,11 +21,11 @@ void main(void)
 		return;
 	}
 
-	gpio_pin_configure(gpio, 16, GPIO_DIR_OUT);
-	gpio_pin_configure(gpio, 17, GPIO_DIR_OUT);
-	gpio_pin_configure(gpio, 18, GPIO_DIR_OUT);
-	gpio_pin_configure(gpio, 20, GPIO_DIR_OUT);
-	gpio_pin_configure(gpio, 23, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, CONFIG_SIFIVE_DISPLAY_ROW_0_GPIO_PIN, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, CONFIG_SIFIVE_DISPLAY_ROW_1_GPIO_PIN, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, CONFIG_SIFIVE_DISPLAY_ROW_2_GPIO_PIN, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, CONFIG_SIFIVE_DISPLAY_ROW_3_GPIO_PIN, GPIO_DIR_OUT);
+	gpio_pin_configure(gpio, CONFIG_SIFIVE_DISPLAY_ROW_4_GPIO_PIN, GPIO_DIR_OUT);
 
 	u32_t brightness = 50;
 	u32_t direction = 1;

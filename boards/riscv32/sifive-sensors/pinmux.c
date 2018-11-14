@@ -14,11 +14,12 @@ static int sifive_sensors_pinmux_init(struct device *dev)
 
 	struct device *p = device_get_binding(CONFIG_PINMUX_SIFIVE_0_NAME);
 
+#ifndef CONFIG_SIFIVE_DISPLAY
 	/* UART0 RX */
-	//pinmux_pin_set(p, 16, SIFIVE_PINMUX_IOF0);
-
+	pinmux_pin_set(p, 16, SIFIVE_PINMUX_IOF0);
 	/* UART0 TX */
-	//pinmux_pin_set(p, 17, SIFIVE_PINMUX_IOF0);
+	pinmux_pin_set(p, 17, SIFIVE_PINMUX_IOF0);
+#endif /* !CONFIG_SIFIVE_DISPLAY */
 
 	/* SPI1 */
 	pinmux_pin_set(p, 3, SIFIVE_PINMUX_IOF0); /* MOSI */
@@ -30,11 +31,13 @@ static int sifive_sensors_pinmux_init(struct device *dev)
 	pinmux_pin_set(p, 12, SIFIVE_PINMUX_IOF0); /* SDA */
 	pinmux_pin_set(p, 13, SIFIVE_PINMUX_IOF0); /* SCL */
 
-	pinmux_pin_set(p, 1, SIFIVE_PINMUX_IOF1);
-	pinmux_pin_set(p, 2, SIFIVE_PINMUX_IOF1);
-	pinmux_pin_set(p, 19, SIFIVE_PINMUX_IOF1);
-	pinmux_pin_set(p, 21, SIFIVE_PINMUX_IOF1);
-	pinmux_pin_set(p, 22, SIFIVE_PINMUX_IOF1);
+#ifdef CONFIG_SIFIVE_DISPLAY
+	pinmux_pin_set(p, CONFIG_SIFIVE_DISPLAY_COL_0_GPIO_PIN, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, CONFIG_SIFIVE_DISPLAY_COL_1_GPIO_PIN, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, CONFIG_SIFIVE_DISPLAY_COL_2_GPIO_PIN, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, CONFIG_SIFIVE_DISPLAY_COL_3_GPIO_PIN, SIFIVE_PINMUX_IOF1);
+	pinmux_pin_set(p, CONFIG_SIFIVE_DISPLAY_COL_4_GPIO_PIN, SIFIVE_PINMUX_IOF1);
+#endif /* CONFIG_SIFIVE_DISPLAY */
 
 	return 0;
 }

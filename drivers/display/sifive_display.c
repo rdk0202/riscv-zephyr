@@ -9,55 +9,64 @@
 #include <gpio.h>
 #include <pwm.h>
 
-#define LED_WAIT_US	1000
-#define PERIOD LED_WAIT_US
-
-#define LED_COL_4	1
-#define LED_COL_3	2
-#define LED_COL_2	19
-#define LED_COL_1	21
-#define LED_COL_0	22
-
 #define LED_ROW_4	16
 #define LED_ROW_3	17
 #define LED_ROW_2	18
 #define LED_ROW_1	20
 #define LED_ROW_0	23
 
-static struct device *pwm0;
-static struct device *pwm1;
-
+/* Turn on column col for duty cycles out of CONFIG_SIFIVE_DISPLAY_PERIOD cycles */
 int sifive_display_setcol(u32_t col, u32_t duty) {
-	if(!pwm0)
-		pwm0 = device_get_binding("pwm_0");
-	if(!pwm1)
-		pwm1 = device_get_binding("pwm_1");
+	static struct device *pwm[2];
+	if(!pwm[0])
+		pwm[0] = device_get_binding("pwm_0");
+	if(!pwm[1])
+		pwm[1] = device_get_binding("pwm_1");
 
 	int rc = 0;
 
 	switch(col) {
 	case 0:
-		rc = pwm_pin_set_cycles(pwm1, 3, PERIOD, duty);
+		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_0_PWM_DEV],
+				CONFIG_SIFIVE_DISPLAY_COL_0_PWM_CHAN,
+				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
 	case 1:
-		rc = pwm_pin_set_cycles(pwm1, 2, PERIOD, duty);
+		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_1_PWM_DEV],
+				CONFIG_SIFIVE_DISPLAY_COL_1_PWM_CHAN,
+				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
 	case 2:
-		rc = pwm_pin_set_cycles(pwm1, 1, PERIOD, duty);
+		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_2_PWM_DEV],
+				CONFIG_SIFIVE_DISPLAY_COL_2_PWM_CHAN,
+				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
 	case 3:
-		rc = pwm_pin_set_cycles(pwm0, 2, PERIOD, duty);
+		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_3_PWM_DEV],
+				CONFIG_SIFIVE_DISPLAY_COL_3_PWM_CHAN,
+				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
 	case 4:
-		rc = pwm_pin_set_cycles(pwm0, 1, PERIOD, duty);
+		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_4_PWM_DEV],
+				CONFIG_SIFIVE_DISPLAY_COL_4_PWM_CHAN,
+				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
 	}
 
 	return rc;
 }
 
-int sifive_display_setleds(struct device *gpio, u32_t ledpat, int hangtime, u32_t brightness) {
-	const u32_t rowary[] = {LED_ROW_0, LED_ROW_1, LED_ROW_2, LED_ROW_3, LED_ROW_4};  
+int sifive_display_setleds(struct device *gpio,
+		u32_t ledpat,
+		u32_t hangtime,
+		u32_t brightness)
+{
+	const u32_t rowary[] = {
+		CONFIG_SIFIVE_DISPLAY_ROW_0_GPIO_PIN,
+		CONFIG_SIFIVE_DISPLAY_ROW_1_GPIO_PIN,
+		CONFIG_SIFIVE_DISPLAY_ROW_2_GPIO_PIN,
+		CONFIG_SIFIVE_DISPLAY_ROW_3_GPIO_PIN,
+		CONFIG_SIFIVE_DISPLAY_ROW_4_GPIO_PIN};
 
 	for(u32_t i = 0; i < hangtime; i++) {
 		// Run through each ROW from the TOP to the BOTTOM
@@ -72,14 +81,16 @@ int sifive_display_setleds(struct device *gpio, u32_t ledpat, int hangtime, u32_
 
 			// Turn on the selected columns
 			for(u32_t col = 0; col < 5; col++) {
-				if (rowbits % 2)
-					sifive_display_setcol(col, brightness * PERIOD / 100);
+				if (rowbits % 2) {
+					u32_t duty = brightness * CONFIG_SIFIVE_DISPLAY_PERIOD / 100;
+					sifive_display_setcol(col, duty);
+				}
 				rowbits = rowbits >> 1;
 			}
 
 			// Flash the row
 			gpio_pin_write(gpio, rowary[row], 1);
-			k_busy_wait(LED_WAIT_US);
+			k_busy_wait(CONFIG_SIFIVE_DISPLAY_PERIOD);
 			gpio_pin_write(gpio, rowary[row], 0);
 		}
 

@@ -12,3 +12,91 @@ config SIFIVE_DISPLAY
 	help
 		Enables the 5x5 LED array
 
+if SIFIVE_DISPLAY
+
+config SIFIVE_DISPLAY_PERIOD
+	int "Period of one flash of the LEDs in us"
+	default 1000
+
+config SIFIVE_DISPLAY_ROW_0_GPIO_PIN
+	int "GPIO pin number for row 0"
+	default 23
+
+config SIFIVE_DISPLAY_ROW_1_GPIO_PIN
+	int "GPIO pin number for row 0"
+	default 20
+
+config SIFIVE_DISPLAY_ROW_2_GPIO_PIN
+	int "GPIO pin number for row 0"
+	default 18
+
+config SIFIVE_DISPLAY_ROW_3_GPIO_PIN
+	int "GPIO pin number for row 0"
+	default 17
+
+config SIFIVE_DISPLAY_ROW_4_GPIO_PIN
+	int "GPIO pin number for row 0"
+	default 16
+
+config SIFIVE_DISPLAY_COL_0_GPIO_PIN
+	int "GPIO pin number for column 0"
+	default 22
+
+config SIFIVE_DISPLAY_COL_0_PWM_DEV
+	int "PWM Device number for column 0"
+	default 1
+
+config SIFIVE_DISPLAY_COL_0_PWM_CHAN
+	int "PWM channel for column 0"
+	default 3
+
+config SIFIVE_DISPLAY_COL_1_GPIO_PIN
+	int "GPIO pin number for column 1"
+	default 21
+
+config SIFIVE_DISPLAY_COL_1_PWM_DEV
+	int "PWM Device number for column 1"
+	default 1
+
+config SIFIVE_DISPLAY_COL_1_PWM_CHAN
+	int "PWM channel for column 1"
+	default 2
+
+config SIFIVE_DISPLAY_COL_2_GPIO_PIN
+	int "GPIO pin number for column 2"
+	default 19
+
+config SIFIVE_DISPLAY_COL_2_PWM_DEV
+	int "PWM Device number for column 2"
+	default 1
+
+config SIFIVE_DISPLAY_COL_2_PWM_CHAN
+	int "PWM channel for column 2"
+	default 1
+
+config SIFIVE_DISPLAY_COL_3_GPIO_PIN
+	int "GPIO pin number for column 3"
+	default 2
+
+config SIFIVE_DISPLAY_COL_3_PWM_DEV
+	int "PWM Device number for column 3"
+	default 0
+
+config SIFIVE_DISPLAY_COL_3_PWM_CHAN
+	int "PWM channel for column 3"
+	default 2
+
+config SIFIVE_DISPLAY_COL_4_GPIO_PIN
+	int "GPIO pin number for column 4"
+	default 1
+
+config SIFIVE_DISPLAY_COL_4_PWM_DEV
+	int "PWM Device number for column 4"
+	default 0
+
+config SIFIVE_DISPLAY_COL_4_PWM_CHAN
+	int "PWM channel for column 4"
+	default 1
+
+
+endif # SIFIVE_DISPLAY
