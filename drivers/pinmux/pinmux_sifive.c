@@ -33,6 +33,11 @@ static int pinmux_sifive_set(struct device *dev, u32_t pin, u32_t func)
 {
 	volatile struct pinmux_sifive_regs_t *pinmux = DEV_PINMUX(dev);
 
+	if (func == SIFIVE_PINMUX_DISABLE) {
+		pinmux->iof_en &= ~(1 << pin);
+		return 0;
+	}
+
 	if (func > SIFIVE_PINMUX_IOF1 ||
 	    pin >= SIFIVE_PINMUX_PINS)
 		return -EINVAL;
