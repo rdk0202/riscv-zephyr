@@ -48,19 +48,23 @@ void main(void)
 		switch(demo_state) {
 			case DEMO_TEXT:
 				/* Add spaces to the front so that the text scrolls onto the screen */
+				printk("Scrolling \"Hello SiFive!\"\n");
 				sifive_display_string("  Hello SiFive!", 15, 100);
 				demo_state = DEMO_FADE;
 				break;
 			case DEMO_FADE:
 				/* Fade a square in and out four times */
+				printk("Fading a square 4 times\n");
 				fade(4);
 				demo_state = DEMO_DIM_TEXT;
 				break;
 			case DEMO_DIM_TEXT:
+				printk("Displaying dim text\n");
 				sifive_display_string("  Dim text", 15, 25);
 				demo_state = DEMO_SYMBOLS;
 				break;
 			case DEMO_SYMBOLS:
+				printk("Displaying symbols\n");
 				symbols();
 				demo_state = DEMO_TEXT;
 				break;

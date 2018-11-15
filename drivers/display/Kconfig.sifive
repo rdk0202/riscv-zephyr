@@ -18,6 +18,21 @@ config SIFIVE_DISPLAY_PERIOD
 	int "Period of one flash of the LEDs in us"
 	default 1000
 
+config SIFIVE_DISPLAY_TOGGLE_UART_0
+	bool "Toggle the UART pinmux on and off when using the display"
+	default y
+	help
+		The UART is on GPIO 16 and 17. With this option on, the UART pinmux
+		will be disabled while the display is being used.
+
+config SIFIVE_DISPLAY_UART_0_TX
+	int "UART 0 Tx pin"
+	default 17
+
+config SIFIVE_DISPLAY_UART_0_RX
+	int "UART 0 Rx pin"
+	default 16
+
 config SIFIVE_DISPLAY_ROW_0_GPIO_PIN
 	int "GPIO pin number for row 0"
 	default 23

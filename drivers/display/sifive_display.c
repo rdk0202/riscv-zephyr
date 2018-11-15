@@ -9,6 +9,7 @@
 #include <board.h>
 #include <gpio.h>
 #include <pwm.h>
+#include <pinmux.h>
 
 #include <display/sifive_display.h>
 
@@ -72,6 +73,14 @@ int sifive_display_setleds(u32_t ledpat,
 		u32_t hangtime,
 		u32_t brightness)
 {
+	static struct device *pinmux;
+	if(IS_ENABLED(CONFIG_SIFIVE_DISPLAY_TOGGLE_UART_0)) {
+		if(!pinmux)
+			pinmux = device_get_binding(CONFIG_PINMUX_SIFIVE_0_NAME);
+		pinmux_pin_set(pinmux, CONFIG_SIFIVE_DISPLAY_UART_0_TX, SIFIVE_PINMUX_DISABLE);
+		pinmux_pin_set(pinmux, CONFIG_SIFIVE_DISPLAY_UART_0_RX, SIFIVE_PINMUX_DISABLE);
+	}
+
 	const u32_t rowary[] = {
 		CONFIG_SIFIVE_DISPLAY_ROW_0_GPIO_PIN,
 		CONFIG_SIFIVE_DISPLAY_ROW_1_GPIO_PIN,
@@ -109,6 +118,11 @@ int sifive_display_setleds(u32_t ledpat,
 		for(u32_t col = 0; col < 5; col++) {
 			sifive_display_setcol(col, 0);
 		}
+	}
+
+	if(IS_ENABLED(CONFIG_SIFIVE_DISPLAY_TOGGLE_UART_0)) {
+		pinmux_pin_set(pinmux, CONFIG_SIFIVE_DISPLAY_UART_0_TX, SIFIVE_PINMUX_IOF0);
+		pinmux_pin_set(pinmux, CONFIG_SIFIVE_DISPLAY_UART_0_RX, SIFIVE_PINMUX_IOF0);
 	}
 	return 0;
 }
