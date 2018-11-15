@@ -5,9 +5,12 @@
  */
 
 #include <zephyr.h>
+#include <string.h>
 #include <board.h>
 #include <gpio.h>
 #include <pwm.h>
+
+#include <display/sifive_display.h>
 
 #define LED_ROW_4	16
 #define LED_ROW_3	17
@@ -26,12 +29,12 @@ int sifive_display_setcol(u32_t col, u32_t duty) {
 	int rc = 0;
 
 	switch(col) {
-	case 0:
+	case 4:
 		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_0_PWM_DEV],
 				CONFIG_SIFIVE_DISPLAY_COL_0_PWM_CHAN,
 				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
-	case 1:
+	case 3:
 		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_1_PWM_DEV],
 				CONFIG_SIFIVE_DISPLAY_COL_1_PWM_CHAN,
 				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
@@ -41,12 +44,12 @@ int sifive_display_setcol(u32_t col, u32_t duty) {
 				CONFIG_SIFIVE_DISPLAY_COL_2_PWM_CHAN,
 				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
-	case 3:
+	case 1:
 		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_3_PWM_DEV],
 				CONFIG_SIFIVE_DISPLAY_COL_3_PWM_CHAN,
 				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
 		break;
-	case 4:
+	case 0:
 		rc = pwm_pin_set_cycles(pwm[CONFIG_SIFIVE_DISPLAY_COL_4_PWM_DEV],
 				CONFIG_SIFIVE_DISPLAY_COL_4_PWM_CHAN,
 				CONFIG_SIFIVE_DISPLAY_PERIOD, duty);
@@ -100,5 +103,76 @@ int sifive_display_setleds(struct device *gpio,
 		}
 	}
 	return 0;
+}
+
+u32_t sifive_display_rstring(const char *msg, int pixel_idx) {
+	int chr = 0;
+	int pixel_count = 0;
+
+	uint32_t canvas = 0;
+
+	/* Index through the string until we are in the leftmost character */
+	while(msg[chr] != 0) {
+		pixel_count += (sifive_font[(int)msg[chr++]] >> 28) & 0x0F;
+
+		if(pixel_count > pixel_idx) {
+			/* Reset to the beginning of the previous character */
+			chr--;
+			pixel_count -= (sifive_font[(int)msg[chr]] >> 28) & 0x0F;      
+			break;
+		}
+	}
+
+	if(msg[chr] == 0)
+		return canvas;
+
+	/* Width of the current character */
+	int width = (sifive_font[(int)msg[chr]] >> 28) & 0x0F;
+
+	// idx is the index from the LHS of the character
+	// pixel_idx will always be >= pixel_count
+	int idx = pixel_idx - pixel_count;
+
+	uint32_t imask, ibits;
+
+	// Generate the canvas
+	for(u32_t i = 0; i < 5; i++) {
+		imask=0b1000010000100001000010000;
+		if(idx)
+			imask = imask >> idx;
+
+		ibits = sifive_font[(int)msg[chr]] & imask;
+
+		if(i>idx)
+			ibits = ibits >> (i - idx);
+		if(i<idx)
+			ibits = ibits << (idx - i);
+
+		canvas |= ibits;
+
+		idx++;
+
+		if(idx >= width) {
+			idx = 0;
+			chr++;
+
+			if(msg[chr] == 0)
+				break;
+
+			width = (sifive_font[(int) msg[chr]] >> 28) & 0x0F;      
+		}
+	}
+	return(canvas);
+}
+
+void sifive_display_string(struct device *gpio, const char *msg, u32_t hangtime, u32_t brightness) {
+	u32_t canvas, pixel_idx = 0;
+	do {
+		/* Get canvas */
+		canvas = sifive_display_rstring(msg, pixel_idx);
+		sifive_display_setleds(gpio, canvas, hangtime, brightness);
+
+		pixel_idx++;
+	} while(canvas != 0);
 }
 

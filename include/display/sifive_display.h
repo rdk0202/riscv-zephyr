@@ -7,7 +7,12 @@
 #ifndef _SIFIVE_DISPLAY__H
 #define _SIFIVE_DISPLAY__H
 
-int sifive_display_setleds(struct device *gpio, u32_t ledpat, int hangtime, u32_t brightness);
+#include <zephyr.h>
+
+extern const u32_t sifive_font[];
+
+int sifive_display_setleds(struct device *gpio, u32_t ledpat, u32_t hangtime, u32_t brightness);
+void sifive_display_string(struct device *gpio, const char *msg, u32_t hangtime, u32_t brightness);
 
 #endif /* _SIFIVE_DISPLAY__H */
 

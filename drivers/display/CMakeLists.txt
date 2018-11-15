@@ -8,4 +8,5 @@ zephyr_sources_ifdef(CONFIG_ILI9340_LCD_ADAFRUIT_1480
 )
 zephyr_sources_ifdef(CONFIG_SIFIVE_DISPLAY
 	sifive_display.c
+	sifive_font.c
 )
