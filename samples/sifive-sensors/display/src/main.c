@@ -15,7 +15,9 @@
 
 enum {
 	DEMO_TEXT,
-	DEMO_FADE
+	DEMO_FADE,
+	DEMO_DIM_TEXT,
+	DEMO_SYMBOLS,
 } demo_state = DEMO_TEXT;
 
 void fade(struct device *gpio, u32_t times) {
@@ -28,6 +30,12 @@ void fade(struct device *gpio, u32_t times) {
 		for(u32_t brightness = 100; brightness > 0; brightness -= 10) {
 			sifive_display_setleds(gpio, 0x1FFFFFF, 10, brightness);
 		}
+	}
+}
+
+void symbols(struct device *gpio) {
+	for(int i = 1; i <= 11; i++) {
+		sifive_display_setleds(gpio, sifive_font[i], 200, 100);
 	}
 }
 
@@ -58,6 +66,14 @@ void main(void)
 			case DEMO_FADE:
 				/* Fade a square in and out four times */
 				fade(gpio, 4);
+				demo_state = DEMO_DIM_TEXT;
+				break;
+			case DEMO_DIM_TEXT:
+				sifive_display_string(gpio, "  Dim text", 15, 25);
+				demo_state = DEMO_SYMBOLS;
+				break;
+			case DEMO_SYMBOLS:
+				symbols(gpio);
 				demo_state = DEMO_TEXT;
 				break;
 		}
