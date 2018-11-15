@@ -11,8 +11,8 @@
 
 extern const u32_t sifive_font[];
 
-int sifive_display_setleds(struct device *gpio, u32_t ledpat, u32_t hangtime, u32_t brightness);
-void sifive_display_string(struct device *gpio, const char *msg, u32_t hangtime, u32_t brightness);
+int sifive_display_setleds(u32_t ledpat, u32_t hangtime, u32_t brightness);
+void sifive_display_string(const char *msg, u32_t hangtime, u32_t brightness);
 
 #endif /* _SIFIVE_DISPLAY__H */
 

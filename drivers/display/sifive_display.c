@@ -18,6 +18,15 @@
 #define LED_ROW_1	20
 #define LED_ROW_0	23
 
+int sifive_display_setrow(u32_t row, u32_t val) {
+	static struct device *gpio;
+	if(!gpio)
+		gpio = device_get_binding(CONFIG_GPIO_SIFIVE_GPIO_NAME);
+
+	gpio_pin_configure(gpio, row, GPIO_DIR_OUT);
+	return gpio_pin_write(gpio, row, val);
+}
+
 /* Turn on column col for duty cycles out of CONFIG_SIFIVE_DISPLAY_PERIOD cycles */
 int sifive_display_setcol(u32_t col, u32_t duty) {
 	static struct device *pwm[2];
@@ -59,8 +68,7 @@ int sifive_display_setcol(u32_t col, u32_t duty) {
 	return rc;
 }
 
-int sifive_display_setleds(struct device *gpio,
-		u32_t ledpat,
+int sifive_display_setleds(u32_t ledpat,
 		u32_t hangtime,
 		u32_t brightness)
 {
@@ -92,9 +100,9 @@ int sifive_display_setleds(struct device *gpio,
 			}
 
 			// Flash the row
-			gpio_pin_write(gpio, rowary[row], 1);
+			sifive_display_setrow(rowary[row], 1);
 			k_busy_wait(CONFIG_SIFIVE_DISPLAY_PERIOD);
-			gpio_pin_write(gpio, rowary[row], 0);
+			sifive_display_setrow(rowary[row], 0);
 		}
 
 		// Turn off all the COLUMNS
@@ -165,12 +173,12 @@ u32_t sifive_display_rstring(const char *msg, int pixel_idx) {
 	return(canvas);
 }
 
-void sifive_display_string(struct device *gpio, const char *msg, u32_t hangtime, u32_t brightness) {
+void sifive_display_string(const char *msg, u32_t hangtime, u32_t brightness) {
 	u32_t canvas, pixel_idx = 0;
 	do {
 		/* Get canvas */
 		canvas = sifive_display_rstring(msg, pixel_idx);
-		sifive_display_setleds(gpio, canvas, hangtime, brightness);
+		sifive_display_setleds(canvas, hangtime, brightness);
 
 		pixel_idx++;
 	} while(canvas != 0);
