@@ -11,8 +11,29 @@
 
 extern const u32_t sifive_font[];
 
-int sifive_display_setleds(u32_t ledpat, u32_t hangtime, u32_t brightness);
-void sifive_display_string(const char *msg, u32_t hangtime, u32_t brightness);
+struct sifive_display {
+	/* GPIO, PWM, and Pinmux devices */
+	struct device *gpio;
+	struct device *pwm[2];
+	struct device *pinmux;
+};
+
+/* Get a handle to the display device */
+struct sifive_display *sifive_display_get(void);
+
+/* Render a canvas to the display for a hangtime multiple of
+ * CONFIG_SIFIVE_DISPLAY_PERIOD with a brightness out of 100 */
+int sifive_display_canvas(struct sifive_display *disp,
+		const u32_t canvas,
+		const u32_t hangtime,
+		const u32_t brightness);
+
+/* Scroll a string across the display, advancing a pixel after a hangtime
+ * multiple of CONFIG_SIFIVE_DISPLAY_PERIOD with a brightness out of 100 */
+void sifive_display_string(struct sifive_display *disp,
+		const char *msg,
+		const u32_t hangtime,
+		const u32_t brightness);
 
 #endif /* _SIFIVE_DISPLAY__H */
 
