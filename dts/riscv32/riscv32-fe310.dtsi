@@ -88,6 +88,11 @@
 				reg = <0x3A>;
 				label = "lsm303c";
 			};
+			ltr329: light-sensor@52 {
+				compatible = "liteon,ltr329";
+				reg = <0x52>;
+				label = "ltr329";
+			};
 		};
 		plic: interrupt-controller@c000000 {
 			#interrupt-cells = <1>;
