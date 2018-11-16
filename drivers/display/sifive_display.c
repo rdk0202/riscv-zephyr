@@ -232,6 +232,8 @@ static int sifive_display_init(struct device *dev) {
 	display.pwm[0] = device_get_binding(CONFIG_SIFIVE_PWM_0_LABEL);
 	display.pwm[1] = device_get_binding(CONFIG_SIFIVE_PWM_1_LABEL);
 	display.pinmux = device_get_binding(CONFIG_PINMUX_SIFIVE_0_NAME);
+
+	return 0;
 }
 
 SYS_INIT(sifive_display_init, POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEVICE);
