@@ -1,0 +1,21 @@
+#
+# Copyright (c) 2018, SiFive Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+title: LiteOn LTR-329 Light Sensor
+id: liteon,ltr329
+version: 0.1
+
+description: >
+    This binding gives a base representation of LTR-329 Light Sensor
+
+inherits:
+    !include i2c-device.yaml
+
+properties:
+    compatible:
+      constraint: "liteon,ltr329"
+
+...
