@@ -17,14 +17,14 @@ menu "Attributes"
 
 config LTR329_GAIN
 	int "Light sensor gain setting"
-	default 1
+	default 96
 	help
 		Specify the light sensor gain setting.
 		Valid values are 1, 2, 4, 8, 48, and 96.
 
 config LTR329_INTEG_RATE
 	int "Light sensor integration rate (ms)"
-	default 100
+	default 50
 	help
 		Specify the light sensor integration rate setting in ms. Must be
 		less than the sample rate. Valid values are 50, 100, 150, 200,
@@ -32,7 +32,7 @@ config LTR329_INTEG_RATE
 
 config LTR329_MEAS_RATE
 	int "Light sensor sample rate (ms)"
-	default 500
+	default 100
 	help
 		Specify the light sensor sample rate setting in ms. Must be
 		greater than the integration rate. Valid values are 50, 100,
