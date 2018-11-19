@@ -93,6 +93,11 @@
 				reg = <0x52>;
 				label = "ltr329";
 			};
+			tla2024: adc@90 {
+				compatible = "ti,tla2024";
+				reg = <0x90>;
+				label = "tla2024";
+			};
 		};
 		plic: interrupt-controller@c000000 {
 			#interrupt-cells = <1>;
