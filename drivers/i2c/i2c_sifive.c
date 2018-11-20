@@ -154,10 +154,13 @@ int i2c_sifive_read_msg(struct device *dev,
 
 	for(int i = 0; i < msg->len; i++) {
 		/* Generate command byte */
-		u8_t command = SF_CMD_READ | SF_CMD_ACK;
+		u8_t command = SF_CMD_READ;
 
 		/* On the last byte of the message */
 		if(i == (msg->len - 1)) {
+			/* Set NACK to end read */
+			command |= SF_CMD_ACK;
+
 			/* If the stop bit is requested, set it */
 			if(msg->flags & I2C_MSG_STOP)
 				command |= SF_CMD_STOP;
