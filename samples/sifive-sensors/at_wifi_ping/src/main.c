@@ -10,7 +10,8 @@
 #include <misc/printk.h>
 #include <string.h>
 
-#define AT_CS_PIN		9
+#define AT_SPI_BAUD		100000
+#define AT_CSID			2
 #define AT_READY_PIN	10
 
 /* Create spi_buf_sets for the SPI interface */
@@ -270,19 +271,12 @@ void main(void)
 		return;
 	}
 
-	/* Configuration for the SPI interface CS pin */
-	struct spi_cs_control at_cs_ctrl = {
-		.gpio_dev = device_get_binding(CONFIG_GPIO_SIFIVE_GPIO_NAME),
-		.gpio_pin = AT_CS_PIN,
-		.delay = 0,
-	};
-
 	/* Configuration for the SPI interface */
 	struct spi_config at_spi_conf = {
-		.frequency = 100000,
+		.frequency = AT_SPI_BAUD,
 		.operation = SPI_TRANSFER_MSB | SPI_LINES_SINGLE | (8 << 5),
-		.slave = 0,
-		.cs = NULL,
+		.slave = AT_CSID,
+		.cs = NULL, /* Use hardware control of the CS line */
 	};
 
 	/* Get the GPIO device */
@@ -303,12 +297,6 @@ void main(void)
 		printk("Unable to enable callback\n");
 	}
 
-	rc = gpio_pin_configure(gpio_dev, AT_CS_PIN, GPIO_DIR_OUT);
-	if(rc) {
-		printk("Error configuring GPIO AT_CS_PIN\n");
-		return;
-	}
-
 	/* Configure AT Ready pin for interrupt */
 	rc = gpio_pin_configure(gpio_dev, AT_READY_PIN, 
 			(GPIO_DIR_IN | GPIO_INT | GPIO_INT_EDGE | GPIO_INT_ACTIVE_HIGH));
@@ -320,6 +308,7 @@ void main(void)
 	printk("Finished init\n");
 	
 	while(1) {
+		/* Confirm communication with AT interface */
 		rc = at_sendrecv(spi_dev, &at_spi_conf, "AT\r\n");
 		if(rc != 0) {
 			printk("AT command failed\n");
