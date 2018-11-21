@@ -10,6 +10,8 @@
 #include "spi_context.h"
 #include "spi_sifive.h"
 
+#include <stdbool.h>
+
 #include <device.h>
 #include <spi.h>
 #include <board.h>
@@ -81,9 +83,6 @@ int spi_config(struct device * dev, u32_t frequency, u16_t operation) {
 	else
 		CLR_BIT(SPI_REG(dev, REG_FMT), SF_FMT_ENDIAN);	
 
-	SPI_REG(dev, REG_CSID) = 2;
-	SPI_REG(dev, REG_CSMODE) = SF_CSMODE_AUTO;
-
 	return 0;
 }
 
@@ -102,7 +101,8 @@ u16_t spi_sifive_recv(struct device * dev) {
 
 int spi_sifive_transceive_one(struct device *dev,
 		const struct spi_buf *tx_buf,
-		const struct spi_buf *rx_buf)
+		const struct spi_buf *rx_buf,
+		bool hw_cs_control)
 {
 	u32_t send_len = 0;
 	if(tx_buf->buf == NULL && rx_buf->buf == NULL) {
@@ -115,7 +115,11 @@ int spi_sifive_transceive_one(struct device *dev,
 		send_len = MIN(tx_buf->len, rx_buf->len);
 	}
 
-	SPI_REG(dev, REG_CSMODE) = SF_CSMODE_HOLD;
+	if(!hw_cs_control) {
+		spi_context_cs_control(&SPI_DATA(dev)->ctx, true);
+	} else {
+		SPI_REG(dev, REG_CSMODE) = SF_CSMODE_HOLD;
+	}
 
 	for(int i = 0; i < send_len; i++) {
 
@@ -137,7 +141,11 @@ int spi_sifive_transceive_one(struct device *dev,
 		}
 	}
 
-	SPI_REG(dev, REG_CSMODE) = SF_CSMODE_AUTO;
+	if(!hw_cs_control) {
+		spi_context_cs_control(&SPI_DATA(dev)->ctx, false);
+	} else {
+		SPI_REG(dev, REG_CSMODE) = SF_CSMODE_AUTO;
+	}
 
 	return 0;
 }
@@ -166,8 +174,30 @@ int spi_sifive_transceive(struct device *dev,
 	/* Configure the SPI bus */
 	SPI_DATA(dev)->ctx.config = config;
 
-	spi_context_cs_configure(&SPI_DATA(dev)->ctx);
-	spi_context_cs_control(&SPI_DATA(dev)->ctx, true);
+	/* Flag to determine if we want the SPI peripheral hardware to control
+	 * the CS line */
+	bool hw_cs_control = false;
+
+	/* If the chip select configuration is not present */
+	if(config->cs == NULL) {
+		hw_cs_control = true;
+	}
+
+	if(!hw_cs_control) {
+		/* If the user has requested manual GPIO control, ask the
+		 * context for control and disable HW control */
+		spi_context_cs_configure(&SPI_DATA(dev)->ctx);
+		SPI_REG(dev, REG_CSMODE) = SF_CSMODE_OFF;
+	} else {
+		/* Tell the hardware to control the requested CS pin.
+		 * NOTE:
+		 *		For the SPI peripheral, the pin number is not the GPIO pin, but
+		 *		the index into the list of available CS lines for the SPI
+		 *		peripheral.
+		 */
+		SPI_REG(dev, REG_CSID) = config->slave;
+		SPI_REG(dev, REG_CSMODE) = SF_CSMODE_AUTO;
+	}
 
 	rc = spi_config(dev, config->frequency, config->operation);
 	if(rc < 0) {
@@ -204,15 +234,13 @@ int spi_sifive_transceive(struct device *dev,
 		if(rx_bufs != NULL)
 			rx_buf = &(rx_bufs->buffers[i]);
 
-		rc = spi_sifive_transceive_one(dev, tx_buf, rx_buf);
+		rc = spi_sifive_transceive_one(dev, tx_buf, rx_buf, hw_cs_control);
 
 		if(rc != 0) {
 			spi_context_release(&SPI_DATA(dev)->ctx, rc);
 			return rc;
 		}
 	}
-
-	spi_context_cs_control(&SPI_DATA(dev)->ctx, false);
 
 	spi_context_release(&SPI_DATA(dev)->ctx, 0);
 	return 0;

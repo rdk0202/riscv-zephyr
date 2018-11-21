@@ -52,6 +52,7 @@
 /* Values */
 #define SF_CSMODE_AUTO  0
 #define SF_CSMODE_HOLD  2
+#define SF_CSMODE_OFF   3
 
 #define SF_TXDATA_FULL  (1 << 31)
 #define SF_RXDATA_EMPTY (1 << 31)
