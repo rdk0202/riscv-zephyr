@@ -1,0 +1,20 @@
+#
+# Copyright (c) 2018, SiFive, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+title: TI TLA2024 ADC
+version: 0.1
+
+description: >
+    This is the binding for the TI TLA2024 Analog-to-Digital Converter
+
+inherits:
+    !include i2c-device.yaml
+
+properties:
+    compatible:
+        constraint: "ti,tla2024"
+
+...

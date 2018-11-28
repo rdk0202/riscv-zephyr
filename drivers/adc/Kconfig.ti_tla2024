@@ -1,0 +1,25 @@
+# Kconfig - TLA2024 configuration
+
+#
+# Copyright (c) 2018 SiFive Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig ADC_TI_TLA2024
+	bool "TI TLA2024 driver"
+	depends on I2C
+	help
+	  Enable driver for TI's TLA2024 ADC chip
+
+menu "Attributes"
+	depends on ADC_TI_TLA2024
+
+config TI_TLA2024_FS_RANGE
+	int	"Full scale range of the TLA2024 ADC (mV)"
+	default 6000
+	help
+	  Specify the full-scale range of the TLA2024 ADC in mV. Supported
+	  values are 6000, 4000, 2000, 1000, 500, and 125 mV.
+
+endmenu # Attributes
