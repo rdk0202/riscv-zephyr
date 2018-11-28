@@ -1,0 +1,158 @@
+# Kconfig - LSM303C accelerometer, magnetometer, and temperature sensor
+# options
+
+#
+# Copyright (c) 2016 Intel Corporation
+# Copyright (c) 2018 SiFive Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig LSM303C
+	bool "LSM303C I2C accelerometer, magnetometer, and temperature sensor"
+	depends on I2C
+	help
+	  Enable driver for LSM303C I2C-based accelerometer, magnetometer, and
+	  temperature sensor.
+
+config LSM303C_M_I2C_ADDR
+	hex "LSM303C I2C address"
+	depends on LSM303C
+	default 0x3C
+	help
+	  I2C address of the LSM303C sensor.
+
+config LSM303C_ACCEL_ENABLE_X_AXIS
+	bool "Enable accelerometer X axis"
+	depends on LSM303C
+	default y
+	help
+	  Enable/disable accelerometer X axis totally by stripping everything
+	  related in driver.
+
+config LSM303C_ACCEL_ENABLE_Y_AXIS
+	bool "Enable accelerometer Y axis"
+	depends on LSM303C
+	default y
+	help
+	  Enable/disable accelerometer Y axis totally by stripping everything
+	  related in driver.
+
+config LSM303C_ACCEL_ENABLE_Z_AXIS
+	bool "Enable accelerometer Z axis"
+	depends on LSM303C
+	default y
+	help
+	  Enable/disable accelerometer Z axis totally by stripping everything
+	  related in driver.
+
+config LSM303C_MAGN_ENABLE_X_AXIS
+	bool "Enable magnetometer X axis"
+	depends on LSM303C
+	default y
+	help
+	  Enable/disable magnetometer X axis totally by stripping everything
+	  related in driver.
+
+config LSM303C_MAGN_ENABLE_Y_AXIS
+	bool "Enable magnetometer Y axis"
+	depends on LSM303C
+	default y
+	help
+	  Enable/disable magnetometer Y axis totally by stripping everything
+	  related in driver.
+
+config LSM303C_MAGN_ENABLE_Z_AXIS
+	bool "Enable magnetometer Z axis"
+	depends on LSM303C
+	default y
+	help
+	  Enable/disable magnetometer Z axis totally by stripping everything
+	  related in driver.
+
+config LSM303C_ENABLE_TEMP
+	bool "Enable temperature"
+	depends on LSM303C
+	default y
+	help
+	  Enable/disable temperature totally by stripping everything related in
+	  driver.
+
+menu "Attributes"
+	depends on LSM303C
+
+config LSM303C_MAGN_SAMPLING_RATE
+	int "Output data rate"
+	depends on LSM303C
+	default 80
+	help
+	  Specify the default magnetometer output data rate expressed in samples
+	  per second (Hz).
+	  Data rates supported by the chip are 0.625, 1.25, 2.5, 5, 10, 20, 40, and
+	  80.
+
+config LSM303C_ACCEL_FULLSCALE
+	int "Accelerometer full-scale range"
+	depends on LSM303C
+	default 4
+	help
+	  Specify the default accelerometer full-scale range.
+	  An X value for the config represents a range of +/- X G. Valid values
+	  are 2, 4, and 8.
+
+config LSM303C_ACCEL_SAMPLING_RATE
+	int "Output data rate"
+	depends on LSM303C
+	default 800
+	help
+	  Specify the default accelerometer output data rate expressed in
+	  samples per second (Hz).
+	  Data rates supported by the chip are 0 (off), 10, 50, 100, 200, 400,
+	  and 800.
+
+config LSM303C_SELFTEST
+	bool "Enable the self-test on driver init"
+	depends on LSM303C
+	default y
+	help
+	  Enables/disables the self-test of the LSM303C sensor on driver
+	  initialization.
+
+menu "Self Test"
+	depends on LSM303C_SELFTEST
+
+config LSM303C_ACCEL_SELFTEST_SAMPLES
+	int "Samples to average for accelerometer self-test"
+	depends on LSM303C_SELFTEST
+	default 10
+	help
+	  Specify the number of samples over which to collect an average when
+	  performing a self-test of the accelerometer.
+
+config LSM303C_MAGN_SELFTEST_SAMPLES
+	int "Samples to average for magnetometer self-test"
+	depends on LSM303C_SELFTEST
+	default 10
+	help
+	  Specify the number of samples over which to collect an average when
+	  performing a self-test of the magnetometer.
+
+config LSM303C_ACCEL_SELFTEST_DELAY_US
+	int "Inter-sample spacing for accelerometer self-test"
+	depends on LSM303C_SELFTEST
+	default 0
+	help
+	  Specify the spacing in micro-seconds between samples for the
+	  accelerometer self-test
+
+config LSM303C_MAGN_SELFTEST_DELAY_US
+	int "Inter-sample spacing for magnetometer self-test"
+	depends on LSM303C_SELFTEST
+	default 0
+	help
+	  Specify the spacing in micro-seconds between samples for the
+	  magnetometer self-test
+
+endmenu
+
+endmenu
