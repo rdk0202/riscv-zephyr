@@ -1,0 +1,41 @@
+# Kconfig - LTR329 Light Sensor Options
+
+#
+# Copyright (c) 2018 SiFive Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+menuconfig LTR329
+	bool "LTR329 Light Sensor"
+	depends on I2C
+	help
+	  Enable driver for LTR329 I2C-based light sensor.
+
+menu "Attributes"
+	depends on LTR329
+
+config LTR329_GAIN
+	int "Light sensor gain setting"
+	default 1
+	help
+		Specify the light sensor gain setting.
+		Valid values are 1, 2, 4, 8, 48, and 96.
+
+config LTR329_INTEG_RATE
+	int "Light sensor integration rate (ms)"
+	default 100
+	help
+		Specify the light sensor integration rate setting in ms. Must be
+		less than the sample rate. Valid values are 50, 100, 150, 200,
+		250, 300, 350, and 400.
+
+config LTR329_MEAS_RATE
+	int "Light sensor sample rate (ms)"
+	default 500
+	help
+		Specify the light sensor sample rate setting in ms. Must be
+		greater than the integration rate. Valid values are 50, 100,
+		200, 500, 1000, and 2000.
+
+endmenu
