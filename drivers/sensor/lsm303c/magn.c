@@ -199,14 +199,13 @@ int lsm303c_sample_fetch_magn(struct device *dev)
 	u8_t buf[6] = {0};
 	u8_t addr = LSM303C_REG_OUT_X_L_M;
 
-	for (int i = 0; i < 6; i++) {
-		if (i2c_reg_read_byte(data->i2c_master,
-				      config->i2c_m_slave_addr,
-				      addr + i,
-				      buf + i) < 0) {
-			LOG_DBG("Failed to read magnetometer sample");
-			return -EIO;
-		}
+	if (i2c_burst_read(data->i2c_master,
+			   config->i2c_m_slave_addr,
+			   addr,
+			   buf,
+			   6) < 0) {
+		LOG_DBG("Failed to read magnetometer sample");
+		return -EIO;
 	}
 
 #if defined(CONFIG_LSM303C_MAGN_ENABLE_X_AXIS)
@@ -233,14 +232,13 @@ int lsm303c_sample_fetch_temp(struct device *dev)
 	u8_t buf[2] = {0};
 	u8_t addr = LSM303C_REG_TEMP_L_M;
 
-	for (int i = 0; i < 2; i++) {
-		if (i2c_reg_read_byte(data->i2c_master,
-				      config->i2c_m_slave_addr,
-				      addr + i,
-				      buf + i) < 0) {
-			LOG_DBG("Failed to read temperature sample");
-			return -EIO;
-		}
+	if (i2c_burst_read(data->i2c_master,
+			   config->i2c_m_slave_addr,
+			   addr,
+			   buf,
+			   2) < 0) {
+		LOG_DBG("Failed to read temperature sample");
+		return -EIO;
 	}
 
 	data->temp_sample = (s16_t) ((((u16_t) buf[1]) << 8) |

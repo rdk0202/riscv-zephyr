@@ -164,14 +164,13 @@ int lsm303c_sample_fetch_accel(struct device *dev)
 	u8_t buf[6] = {0};
 	u8_t addr = LSM303C_REG_OUT_X_L_A;
 
-	for (int i = 0; i < 6; i++) {
-		if (i2c_reg_read_byte(data->i2c_master,
-				      config->i2c_slave_addr,
-				      addr + i,
-				      buf + i) < 0) {
-			LOG_DBG("Failed to read accelerometer sample");
-			return -EIO;
-		}
+	if (i2c_burst_read(data->i2c_master,
+			   config->i2c_slave_addr,
+			   addr,
+			   buf,
+			   6) < 0) {
+		LOG_DBG("Failed to read accelerometer sample");
+		return -EIO;
 	}
 
 #if defined(CONFIG_LSM303C_ACCEL_ENABLE_X_AXIS)
