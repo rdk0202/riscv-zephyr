@@ -124,7 +124,6 @@ int lsm303c_init(struct device *dev)
 {
 	const struct lsm303c_config * const config = dev->config->config_info;
 	struct lsm303c_data *data = dev->driver_data;
-	u32_t dev_config = 0;
 
 	data->i2c_master = device_get_binding(config->i2c_master_dev_name);
 	if (!data->i2c_master) {
@@ -150,13 +149,13 @@ int lsm303c_init(struct device *dev)
 }
 
 const struct lsm303c_config lsm303c_config = {
-	.i2c_master_dev_name = DT_LSM303C_I2C_MASTER_DEV_NAME,
-	.i2c_slave_addr = DT_LSM303C_I2C_ADDR,
+	.i2c_master_dev_name = DT_ST_LSM303C_0_BUS_NAME,
+	.i2c_slave_addr = DT_ST_LSM303C_0_BASE_ADDRESS,
 	.i2c_m_slave_addr = CONFIG_LSM303C_M_I2C_ADDR,
 };
 
 struct lsm303c_data lsm303c_data;
 
-DEVICE_AND_API_INIT(lsm303c, DT_LSM303C_DEV_NAME, lsm303c_init,
+DEVICE_AND_API_INIT(lsm303c, DT_ST_LSM303C_0_LABEL, lsm303c_init,
 		    &lsm303c_data, &lsm303c_config, POST_KERNEL,
 		    CONFIG_SENSOR_INIT_PRIORITY, &lsm303c_api_funcs);
