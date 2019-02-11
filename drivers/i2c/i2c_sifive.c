@@ -323,7 +323,7 @@ static int i2c_sifive_init(struct device *dev)
 }
 
 
-static struct i2c_driver_api i2c_sifive_api = {
+static const struct i2c_driver_api i2c_sifive_api = {
 	.configure = i2c_sifive_configure,
 	.transfer = i2c_sifive_transfer,
 };
@@ -331,7 +331,7 @@ static struct i2c_driver_api i2c_sifive_api = {
 /* Device instantiation */
 
 #define I2C_SIFIVE_INIT(n) \
-	static struct i2c_sifive_cfg i2c_sifive_cfg_##n = { \
+	static const struct i2c_sifive_cfg i2c_sifive_cfg_##n = { \
 		.base = DT_SIFIVE_I2C0_##n##_BASE_ADDRESS, \
 		.f_sys = DT_SIFIVE_I2C0_##n##_INPUT_FREQUENCY, \
 		.f_bus = DT_SIFIVE_I2C0_##n##_CLOCK_FREQUENCY, \

@@ -110,49 +110,4 @@ config LSM303C_ACCEL_SAMPLING_RATE
 	  Data rates supported by the chip are 0 (off), 10, 50, 100, 200, 400,
 	  and 800.
 
-config LSM303C_SELFTEST
-	bool "Enable the self-test on driver init"
-	depends on LSM303C
-	default y
-	help
-	  Enables/disables the self-test of the LSM303C sensor on driver
-	  initialization.
-
-menu "Self Test"
-	depends on LSM303C_SELFTEST
-
-config LSM303C_ACCEL_SELFTEST_SAMPLES
-	int "Samples to average for accelerometer self-test"
-	depends on LSM303C_SELFTEST
-	default 10
-	help
-	  Specify the number of samples over which to collect an average when
-	  performing a self-test of the accelerometer.
-
-config LSM303C_MAGN_SELFTEST_SAMPLES
-	int "Samples to average for magnetometer self-test"
-	depends on LSM303C_SELFTEST
-	default 10
-	help
-	  Specify the number of samples over which to collect an average when
-	  performing a self-test of the magnetometer.
-
-config LSM303C_ACCEL_SELFTEST_DELAY_US
-	int "Inter-sample spacing for accelerometer self-test"
-	depends on LSM303C_SELFTEST
-	default 0
-	help
-	  Specify the spacing in micro-seconds between samples for the
-	  accelerometer self-test
-
-config LSM303C_MAGN_SELFTEST_DELAY_US
-	int "Inter-sample spacing for magnetometer self-test"
-	depends on LSM303C_SELFTEST
-	default 0
-	help
-	  Specify the spacing in micro-seconds between samples for the
-	  magnetometer self-test
-
-endmenu
-
 endmenu
