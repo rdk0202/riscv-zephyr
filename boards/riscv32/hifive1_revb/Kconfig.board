@@ -1,0 +1,3 @@
+config BOARD_HIFIVE1_REVB
+	bool "HiFive1 Rev B target"
+	depends on SOC_RISCV32_SIFIVE_FREEDOM
